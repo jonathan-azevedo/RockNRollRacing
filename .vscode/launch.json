@@ -1,0 +1,30 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    
+    {
+      "name": "Run Raylib (C)",
+      "type": "cppvsdbg",
+      "request": "launch",
+      "program": "${workspaceFolder}/game.exe", // Out name
+      "args": [],
+      "stopAtEntry": false,
+      "cwd": "${workspaceFolder}",
+      "environment": [],
+      "preLaunchTask": "Compile Raylib (C)",
+      "console": "integratedTerminal"
+    },
+    {
+      "name": "Run Raylib (C++)",
+      "type": "cppvsdbg",
+      "request": "launch",
+      "program": "${workspaceFolder}/game.exe", // Out name
+      "args": [],
+      "stopAtEntry": false,
+      "cwd": "${workspaceFolder}",
+      "environment": [],
+      "preLaunchTask": "Compile Raylib (C++)",
+      "console": "integratedTerminal"
+    }
+  ]
+}
