@@ -1,6 +1,7 @@
 #include <raylib.h>
 #include "car.h"
 #include "ui.h"
+#include "map.h"
 
 
 int main()
@@ -17,12 +18,23 @@ int main()
     RenderTexture2D screen = LoadRenderTexture(virtualScreenWidth, virtualScreenHeight);
     RENDER_SETUP screenSetup = {screen, virtualScreenWidth, virtualScreenHeight, {0}, {0}};
     screenSetup = calculateScreenSetup(screenSetup);
+    
+    Camera2D camera = { 0 };
+    camera.offset = (Vector2){ virtualScreenWidth / 2.0f, virtualScreenHeight / 2.0f };
+    camera.rotation = 0.0f;
+    camera.zoom = 1.4f; 
+
+    MAP gameMap = loadMap("track1.txt");
     while (!WindowShouldClose())    
     {
         updateCar(&player);
+        camera.target = (Vector2){ player.x, player.y };
         BeginTextureMode(screen);
-            ClearBackground(RAYWHITE); 
-            drawCar(&player);
+            ClearBackground(DARKGREEN); 
+            BeginMode2D(camera);
+                drawMap(&gameMap);
+                drawCar(&player);
+            EndMode2D();
             DrawFPS(virtualScreenWidth - 100, 0);
         EndTextureMode();
         BeginDrawing();

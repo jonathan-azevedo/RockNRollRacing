@@ -8,7 +8,7 @@ void drawCar(CAR *car) {
 
 void updateCar(CAR *car){
     float deltaTime = GetFrameTime();
-    float speed = 350.0;
+    float speed = 400.0;
     float rotationSpeed = 150.0;
     int goFront = IsKeyDown(KEY_W) || IsKeyDown(KEY_UP);
     int goBack = IsKeyDown(KEY_S) || IsKeyDown(KEY_DOWN);
