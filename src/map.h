@@ -1,11 +1,12 @@
 #pragma once
 #include <raylib.h>
 #include <stdio.h>
+#include "textures.h"
 
 #define MAP_WIDTH 80
 #define MAP_HEIGHT 20
-#define TILE_WIDTH   44 
-#define TILE_HEIGHT   84
+#define TILE_SIZE 54
+
 
 typedef struct{
 
@@ -14,4 +15,5 @@ typedef struct{
 }MAP;
 
 MAP loadMap(const char *fileName);
-void drawMap(MAP *map);
+void drawMap(MAP *map, GAME_TEXTURES *textures);
+void getInitialPosition(MAP *map, int *initialPosx, int *initialPosy);

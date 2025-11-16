@@ -17,13 +17,35 @@ MAP loadMap(const char *fileName){
     fclose(file);
     return map;
 }
-
-void drawMap(MAP *map){
+void getInitialPosition(MAP *map, int *initialPosx, int *initialPosy){
+    for (int y = 0; y < MAP_HEIGHT; y++) {
+        for (int x = 0; x < MAP_WIDTH; x++) {
+            if(map->tiles[y][x] == 'j'){
+                *initialPosx = x * TILE_SIZE;
+                *initialPosy = y * TILE_SIZE;
+            }
+        }
+    }
+}
+void drawMap(MAP *map, GAME_TEXTURES *textures){
     for (int y = 0; y < MAP_HEIGHT; y++) {
         for (int x = 0; x < MAP_WIDTH; x++) {
             char tile = map->tiles[y][x];
-            if (tile == ' '){
-                DrawRectangle(x * TILE_WIDTH, y * TILE_HEIGHT, TILE_WIDTH, TILE_HEIGHT, BLACK);
+            int posX = x * TILE_SIZE;
+            int posY = y * TILE_SIZE;
+            switch(tile){
+                case ' ':{
+                    DrawTexture(textures->asphaltTexture, posX, posY, WHITE);
+                    break;
+                }
+                case 'j':{
+                    DrawTexture(textures->asphaltTexture, posX, posY, WHITE);
+                    break;
+                }
+                case 'i':{
+                    DrawTexture(textures->asphaltTexture, posX, posY, WHITE);
+                    break;
+                }
             }
         }
     }

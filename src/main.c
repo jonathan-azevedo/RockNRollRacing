@@ -2,18 +2,23 @@
 #include "car.h"
 #include "ui.h"
 #include "map.h"
-
+#include "textures.h"
 
 int main()
 {
-    int screenWidth = GetMonitorWidth(0);
-    int screenHeight = GetMonitorHeight(0);
+   
+    int initialPosX, initialPosY;
     const int virtualScreenWidth = 1920;
     const int virtualScreenHeight = 1080;
-    CAR player = {20.0f,20.0f,0.0f,64.0f,32.0f};
 
-    InitWindow(screenWidth, screenHeight, "Rock and Roll Racing");
-    ToggleFullscreen();
+    
+    MAP gameMap = loadMap("track1.txt");
+    getInitialPosition(&gameMap, &initialPosX, &initialPosY);
+
+    InitWindow(0, 0, "Rock and Roll Racing");
+    SetWindowState(FLAG_FULLSCREEN_MODE);
+    GAME_TEXTURES gameTextures = loadTextures();
+    CAR player = {initialPosX,initialPosY,0.0f,64.0f,32.0f,gameTextures.carTexture,0.0f,420.0f,250.0f,300.0f,200.0f};
     
     RenderTexture2D screen = LoadRenderTexture(virtualScreenWidth, virtualScreenHeight);
     RENDER_SETUP screenSetup = {screen, virtualScreenWidth, virtualScreenHeight, {0}, {0}};
@@ -24,7 +29,7 @@ int main()
     camera.rotation = 0.0f;
     camera.zoom = 1.4f; 
 
-    MAP gameMap = loadMap("track1.txt");
+    
     while (!WindowShouldClose())    
     {
         updateCar(&player);
@@ -32,10 +37,12 @@ int main()
         BeginTextureMode(screen);
             ClearBackground(DARKGREEN); 
             BeginMode2D(camera);
-                drawMap(&gameMap);
+                drawMap(&gameMap, &gameTextures);
                 drawCar(&player);
             EndMode2D();
             DrawFPS(virtualScreenWidth - 100, 0);
+            DrawText(TextFormat("Vel: %.0f", player.currentSpeed), 10, 10, 20, WHITE);
+            DrawText(TextFormat("Ang: %.0f", player.angle), 10, 40, 20, WHITE);
         EndTextureMode();
         BeginDrawing();
             ClearBackground(BLACK); 
@@ -43,6 +50,7 @@ int main()
         EndDrawing();
         }
     UnloadRenderTexture(screen);
+    unloadTextures(&gameTextures);
     CloseWindow();        
 
     return 0;
