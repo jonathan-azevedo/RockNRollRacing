@@ -5,6 +5,7 @@
 typedef struct{
     Texture2D carTexture;
     Texture2D asphaltTexture;
+    Texture2D stripTexture;
 
 }GAME_TEXTURES;
 

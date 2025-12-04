@@ -42,6 +42,10 @@ void drawMap(MAP *map, GAME_TEXTURES *textures){
                     DrawTexture(textures->asphaltTexture, posX, posY, WHITE);
                     break;
                 }
+                case 'l':{
+                    DrawTexture(textures->stripTexture, posX, posY, WHITE);
+                    break;
+                }
                 case 'i':{
                     DrawTexture(textures->asphaltTexture, posX, posY, WHITE);
                     break;

@@ -1,6 +1,7 @@
 #pragma once
 #include <raylib.h>
 #include <math.h>
+#include "map.h"
 
 
 typedef struct{
@@ -14,9 +15,17 @@ typedef struct{
     float maxSpeed;
     float acceleration;
     float brakeSpeed;       
-    float friction;      
+    float friction;  
+    int currentLap;
+    int hasReachedMidpoint; 
+    float lastLapX;           
+    float lastLapY;    
     }CAR;
 
 
 void drawCar(CAR *car);
-void updateCar(CAR *car);
+void updateCar(CAR *car, MAP *gameMap);
+int checkCarCollision(CAR *car, MAP *map);
+int isWall(MAP *map, float x, float y);
+void updateLaps(CAR *car, MAP *map);
+int isTouchingTile(CAR *car, MAP *map, char targetTile);
