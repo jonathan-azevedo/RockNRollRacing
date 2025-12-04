@@ -9,6 +9,7 @@ GAME_TEXTURES loadTextures() {
     textures.carTexture = LoadTexture("Assets/Textures/car.png");
     textures.asphaltTexture = LoadTexture("Assets/Textures/asphalt.png");
     textures.stripTexture = LoadTexture("Assets/Textures/strip.png");
+    textures.titlefont = LoadFontEx("Assets/Fonts/RaceSport.ttf",1080,0,0);
     return textures;
 
 }
@@ -16,4 +17,6 @@ GAME_TEXTURES loadTextures() {
 void unloadTextures(GAME_TEXTURES *textures) {
     UnloadTexture(textures->carTexture);
     UnloadTexture(textures->asphaltTexture);
+    UnloadTexture(textures->stripTexture);
+    UnloadFont(textures->titlefont);
 }
