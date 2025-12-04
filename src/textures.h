@@ -3,7 +3,7 @@
 
 
 typedef struct{
-    Texture2D carTexture;
+    Texture2D carTextures[4];
     Texture2D asphaltTexture;
     Texture2D stripTexture;
     Font titlefont;
