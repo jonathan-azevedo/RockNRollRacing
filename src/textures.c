@@ -11,7 +11,7 @@ GAME_TEXTURES loadTextures() {
     textures.carTextures[2] = LoadTexture("Assets/Textures/spaceship.png");
     textures.carTextures[3] = LoadTexture("Assets/Textures/tank.png");
     textures.asphaltTexture = LoadTexture("Assets/Textures/asphalt.png");
-    textures.stripTexture = LoadTexture("Assets/Textures/strip.png");
+    textures.lineTexture = LoadTexture("Assets/Textures/line.png");
     textures.ammoTexture = LoadTexture("Assets/Textures/icon_ammo.png");
     textures.lifeTexture = LoadTexture("Assets/Textures/icon_life.png");
     textures.shieldTexture = LoadTexture("Assets/Textures/icon_shield.png");
@@ -27,6 +27,6 @@ void unloadTextures(GAME_TEXTURES *textures) {
     UnloadTexture(textures->carTextures[2]);
     UnloadTexture(textures->carTextures[3]);
     UnloadTexture(textures->asphaltTexture);
-    UnloadTexture(textures->stripTexture);
+    UnloadTexture(textures->lineTexture);
     UnloadFont(textures->titlefont);
 }

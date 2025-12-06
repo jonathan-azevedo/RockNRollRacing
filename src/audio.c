@@ -12,12 +12,12 @@ GameAudio LoadGameAudio() {
     // --- CARREGANDO MÚSICAS ---
     // Ajuste os volumes aqui (0.0f a 1.0f)
     
-    audio.menuMusic = LoadMusicStream("Assets/Sounds/Skillet-Monster.mp3");
+    audio.menuMusic = LoadMusicStream("Assets/Music/Skillet-Monster.mp3");
     SetMusicVolume(audio.menuMusic, 0.5f);
     // Faz a música do menu loopar corretamente se tiver metadados de loop
     audio.menuMusic.looping = true; 
 
-    audio.raceMusic = LoadMusicStream("Assets/Sounds/heavy_battle.mp3");
+    audio.raceMusic = LoadMusicStream("Assets/Music/heavy_battle.mp3");
     SetMusicVolume(audio.raceMusic, 0.4f);
     audio.raceMusic.looping = true;
 
@@ -47,7 +47,6 @@ void UpdateGameMusic(GameAudio *audio, int gameState) {
         // --- TRANSIÇÃO: ENTRANDO EM PAUSE ---
         if (gameState == PAUSE) { 
             PauseMusicStream(audio->raceMusic);
-            PauseMusicStream(audio->menuMusic);
         }
         
         // --- TRANSIÇÃO: ENTRANDO NO JOGO OU COUNTDOWN ---
@@ -67,11 +66,8 @@ void UpdateGameMusic(GameAudio *audio, int gameState) {
         else if (gameState == MENU || gameState == GAME_SETUP || gameState == VICTORY) {
             StopMusicStream(audio->raceMusic);
             
-            if (lastState == PAUSE) {
-                ResumeMusicStream(audio->menuMusic);
-            } else {
-                if (!IsMusicStreamPlaying(audio->menuMusic)) 
-                    PlayMusicStream(audio->menuMusic);
+            if (!IsMusicStreamPlaying(audio->menuMusic)) {
+                PlayMusicStream(audio->menuMusic);
             }
         }
         

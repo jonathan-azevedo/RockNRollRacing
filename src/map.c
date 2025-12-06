@@ -43,7 +43,7 @@ void drawMap(MAP *map, GAME_TEXTURES *textures){
                     break;
                 }
                 case 'l':{
-                    DrawTexture(textures->stripTexture, posX, posY, WHITE);
+                    DrawTexture(textures->lineTexture, posX, posY, WHITE);
                     break;
                 }
                 case 'i':{
