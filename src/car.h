@@ -17,14 +17,19 @@ typedef struct{
     float brakeSpeed;       
     float friction;  
     int currentLap;
+    int maxLaps;
     int hasReachedMidpoint; 
     float lastLapX;           
-    float lastLapY;    
+    float lastLapY; 
+    int health;      
+    int shield;      
+    int Ammo;    
     }CAR;
 
 
 void drawCar(CAR *car);
 void updateCar(CAR *car, MAP *gameMap);
+void resetCar(CAR *car, int initialPosX, int initialPosY);
 int checkCarCollision(CAR *car, MAP *map);
 int isWall(MAP *map, float x, float y);
 void updateLaps(CAR *car, MAP *map);

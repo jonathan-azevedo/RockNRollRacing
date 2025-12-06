@@ -6,6 +6,10 @@ typedef struct{
     Texture2D carTextures[4];
     Texture2D asphaltTexture;
     Texture2D stripTexture;
+    Texture2D ammoTexture;
+    Texture2D lifeTexture;
+    Texture2D shieldTexture;
+
     Font titlefont;
 
 }GAME_TEXTURES;

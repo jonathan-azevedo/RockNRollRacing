@@ -149,3 +149,26 @@ int isTouchingTile(CAR *car, MAP *map, char targetTile) {
     if (gridX < 0 || gridX >= MAP_WIDTH || gridY < 0 || gridY >= MAP_HEIGHT) return 0;
     return (map->tiles[gridY][gridX] == targetTile);
 }
+
+void resetCar(CAR *car, int initialPosX, int initialPosY){
+    car->x = initialPosX;
+    car->y = initialPosY;
+    car->angle = 0.0f;
+    car->width = 60.0f;
+    car->height = 28.0f;
+    car->currentSpeed = 0.0f;
+    car->maxSpeed = 420.0f;
+    car->acceleration = 250.0f;
+    car->brakeSpeed = 300.0f;
+    car->friction = 200.0f;
+    car->currentLap = 0;
+    car->maxLaps = 0;
+    car->hasReachedMidpoint = 0;
+    car->lastLapX = (float)initialPosX ;    
+    car->lastLapY = (float)initialPosY;
+    car->health = 100;
+    car->shield = 0;
+    car->Ammo = 0;
+}
+
+

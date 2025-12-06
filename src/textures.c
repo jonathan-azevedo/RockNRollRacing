@@ -12,6 +12,10 @@ GAME_TEXTURES loadTextures() {
     textures.carTextures[3] = LoadTexture("Assets/Textures/tank.png");
     textures.asphaltTexture = LoadTexture("Assets/Textures/asphalt.png");
     textures.stripTexture = LoadTexture("Assets/Textures/strip.png");
+    textures.ammoTexture = LoadTexture("Assets/Textures/icon_ammo.png");
+    textures.lifeTexture = LoadTexture("Assets/Textures/icon_life.png");
+    textures.shieldTexture = LoadTexture("Assets/Textures/icon_shield.png");
+
     textures.titlefont = LoadFontEx("Assets/Fonts/RaceSport.ttf",1080,0,0);
     return textures;
 
