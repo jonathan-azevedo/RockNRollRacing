@@ -12,7 +12,7 @@ MAP loadMap(const char *fileName){
     }
     printf("MAPA CARREGADO\n");
     for(int y = 0; y < MAP_HEIGHT; y++){
-        fgets(map.tiles[y], MAP_WIDTH + 2, file); 
+        fgets(map.tiles[y], MAP_WIDTH + 5, file); 
     }
     fclose(file);
     return map;
@@ -21,8 +21,8 @@ void getInitialPosition(MAP *map, int *initialPosx, int *initialPosy){
     for (int y = 0; y < MAP_HEIGHT; y++) {
         for (int x = 0; x < MAP_WIDTH; x++) {
             if(map->tiles[y][x] == 'j'){
-                *initialPosx = x * TILE_SIZE;
-                *initialPosy = y * TILE_SIZE;
+                *initialPosx = (x * TILE_SIZE) + (TILE_SIZE / 2);
+                *initialPosy = (y * TILE_SIZE) + (TILE_SIZE / 2);
             }
         }
     }

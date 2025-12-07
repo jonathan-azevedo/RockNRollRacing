@@ -10,7 +10,7 @@
 
 typedef struct{
 
-    char tiles[MAP_HEIGHT][MAP_WIDTH+2];
+    char tiles[MAP_HEIGHT][MAP_WIDTH+5];
 
 }MAP;
 
