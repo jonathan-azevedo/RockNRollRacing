@@ -7,6 +7,7 @@
 #include "itens.h"
 #include "enemy.h"
 #include <stdio.h>
+#include <string.h>
 
 #define MAX_ENEMIES 2
 
@@ -19,6 +20,7 @@ typedef struct {
 typedef enum {MENU, GAME_SETUP, PLAYING, VICTORY, PAUSE, COUNTDOWN} State;
 
 int main(){
+    ChangeDirectory(GetApplicationDirectory());
     const int virtualScreenWidth = 1920;
     const int virtualScreenHeight = 1080;
 

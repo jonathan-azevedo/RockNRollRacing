@@ -27,7 +27,7 @@ GAME_TEXTURES loadTextures() {
     textures.shieldTexture = LoadTexture("Assets/Textures/icon_shield.png");
 
     // Fonte
-    textures.titlefont = LoadFontEx("Assets/Fonts/RaceSport.ttf", 1000, 0, 0);
+    textures.titlefont = LoadFontEx("Assets/Fonts/RaceSport.ttf", 250, 0, 0);
 
     return textures;
 }
