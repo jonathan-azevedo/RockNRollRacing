@@ -61,14 +61,15 @@ void spawnProjectile(ITEM_MANAGER *manager, float x, float y, float angle, bool 
     }
 }
 
-void spawnBomb(ITEM_MANAGER *manager, float x, float y, bool isPlayer) {
+void spawnBomb(ITEM_MANAGER *manager, float x, float y, int ID) {
     for(int i=0; i<MAX_BOMBS; i++) {
         if(!manager->bombs[i].active) {
             manager->bombs[i].active = true;
             manager->bombs[i].x = x;
             manager->bombs[i].y = y;
             manager->bombs[i].timer = 20.0f;
-            manager->bombs[i].droppedByPlayer = isPlayer;
+            manager->bombs[i].ID = ID; // Define quem é o dono (-1 Player, 0+ Inimigo)
+            manager->bombs[i].safeTimer = 2.0f;  // 2 segundos de segurança para fugir
             break;
         }
     }
@@ -92,10 +93,12 @@ void applyLoot(CAR *car, ITEM_MANAGER *manager) {
 }
 
 // ATUALIZADO: Loop para m�ltiplos inimigos
- void updateItems(ITEM_MANAGER *manager, CAR *player, ENEMY enemies[], int enemyCount, float dt, GameAudio *audio, MAP *map) {
+ // ATUALIZADO: Lógica de escudo por tempo (20s) e invulnerabilidade
+void updateItems(ITEM_MANAGER *manager, CAR *player, ENEMY enemies[], int enemyCount, float dt, GameAudio *audio, MAP *map) {
     // 1. CAIXAS DE LOOT
     for(int i=0; i<MAX_ITEMS; i++) {
         if(manager->items[i].active) {
+            // Colisão com Player
             if(CheckCollisionRecs(player->collider, manager->items[i].rect)) {
                 if (player->Ammo == 0 && player->hasBomb == 0 && player->hasShield == 0) {
                     applyLoot(player, manager);
@@ -104,12 +107,14 @@ void applyLoot(CAR *car, ITEM_MANAGER *manager) {
                 }
             }
             else {
+                // Colisão com Inimigos
                 for (int e = 0; e < enemyCount; e++) {
                     if (CheckCollisionRecs(enemies[e].vehicle.collider, manager->items[i].rect)) {
                         applyLoot(&enemies[e].vehicle, manager);
+                        
                         // IA usa itens imediatamente
                         if (enemies[e].vehicle.hasBomb) {
-                            spawnBomb(manager, enemies[e].vehicle.x, enemies[e].vehicle.y, false);
+                            spawnBomb(manager, enemies[e].vehicle.x, enemies[e].vehicle.y, e); // Passa 'e' como ID
                             enemies[e].vehicle.hasBomb = 0;
                         }
                         if (enemies[e].vehicle.Ammo) {
@@ -117,9 +122,10 @@ void applyLoot(CAR *car, ITEM_MANAGER *manager) {
                             enemies[e].vehicle.Ammo = 0;
                             PlaySound(audio->shoot);
                         }
-                        if (enemies[e].vehicle.hasShield) { // IA ativa escudo na hora
+                        // ALTERAÇÃO: IA ativa escudo temporário
+                        if (enemies[e].vehicle.hasShield) { 
                             enemies[e].vehicle.hasShield = 0;
-                            enemies[e].vehicle.shield = 100;
+                            enemies[e].vehicle.shieldTimer = 20.0f; // Reseta timer para 20s
                         }
 
                         manager->items[i].active = false;
@@ -138,91 +144,105 @@ void applyLoot(CAR *car, ITEM_MANAGER *manager) {
     }
 
     // 2. BOMBAS
-    for(int i=0; i<MAX_BOMBS; i++) {
+    for(int i = 0; i < MAX_BOMBS; i++) {
         if(manager->bombs[i].active) {
             manager->bombs[i].timer -= dt;
+            if(manager->bombs[i].safeTimer > 0) manager->bombs[i].safeTimer -= dt; // Reduz o tempo seguro
+            
             if(manager->bombs[i].timer <= 0) manager->bombs[i].active = false;
+            if(!manager->bombs[i].active) continue;
 
             Rectangle bombR = {manager->bombs[i].x, manager->bombs[i].y, 32, 32};
+            bool exploded = false;
 
-            // Player pisou na bomba (de inimigo)
-            if (!manager->bombs[i].droppedByPlayer && CheckCollisionRecs(player->collider, bombR)) {
-                manager->bombs[i].active = false;
-                spawnExplosion(manager, manager->bombs[i].x, manager->bombs[i].y);
-                PlaySound(audio->damage);
-                int dmg = 50;
-                if(player->shield > 0) { player->shield = 0;}
-                else { player->health -= dmg; }
-                player->currentSpeed = 0;
+            // 2.1 Colisão com PLAYER
+            if (CheckCollisionRecs(player->collider, bombR)) {
+                // Se for o dono (Player = -1) E ainda tem tempo seguro, não explode
+                bool isSafe = (manager->bombs[i].ID == -1 && manager->bombs[i].safeTimer > 0);
+                
+                if (!isSafe) {
+                    exploded = true;
+                    spawnExplosion(manager, manager->bombs[i].x, manager->bombs[i].y);
+                    PlaySound(audio->damage);
+                    if (player->shieldTimer <= 0) player->health -= 50;
+                    player->currentSpeed = 0;
+                }
             }
 
-            // Inimigos pisaram na bomba (do player)
-            else if (manager->bombs[i].droppedByPlayer) {
+            // 2.2 Colisão com INIMIGOS (se não explodiu no player)
+            if (!exploded) {
                 for (int e = 0; e < enemyCount; e++) {
                     if (CheckCollisionRecs(enemies[e].vehicle.collider, bombR)) {
-                        manager->bombs[i].active = false;
-                        spawnExplosion(manager, manager->bombs[i].x, manager->bombs[i].y);
-                        PlaySound(audio->damage);
-                        int dmg = 50;
-                        if(enemies[e].vehicle.shield > 0) { enemies[e].vehicle.shield = 0;}
-                        else { enemies[e].vehicle.health -= dmg; }
-                        enemies[e].vehicle.currentSpeed = 0;
-                        break; // Bomba explodiu
+                        // Se for o dono (ID == e) E ainda tem tempo seguro, não explode
+                        bool isSafe = (manager->bombs[i].ID == e && manager->bombs[i].safeTimer > 0);
+                        
+                        if (!isSafe) {
+                            exploded = true;
+                            spawnExplosion(manager, manager->bombs[i].x, manager->bombs[i].y);
+                            PlaySound(audio->damage);
+                            if (enemies[e].vehicle.shieldTimer <= 0) enemies[e].vehicle.health -= 50;
+                            enemies[e].vehicle.currentSpeed = 0;
+                            break; 
+                        }
                     }
                 }
             }
+
+            if (exploded) manager->bombs[i].active = false;
         }
     }
 
-    // 3. PROJ�TEIS
+    // 3. PROJÉTEIS
     for(int i=0; i<MAX_PROJECTILES; i++) {
         if(manager->projectiles[i].active) {
             manager->projectiles[i].x += manager->projectiles[i].dx * dt;
             manager->projectiles[i].y += manager->projectiles[i].dy * dt;
             
-            // --- CORREÇÃO: Remove tiro se sair do mapa ---
-            // Isso impede que o vetor encha e pare de atirar
             if (manager->projectiles[i].x < 0 || manager->projectiles[i].x > MAP_WIDTH * TILE_SIZE ||
                 manager->projectiles[i].y < 0 || manager->projectiles[i].y > MAP_HEIGHT * TILE_SIZE) {
                 manager->projectiles[i].active = false;
-                continue; // Pula colisão
+                continue;
             }
-            // ---------------------------------------------
 
             Vector2 center = {manager->projectiles[i].x, manager->projectiles[i].y};
 
+            // Se atirado pelo Player -> Acerta Inimigo
             if (manager->projectiles[i].firedByPlayer) {
                 for (int e = 0; e < enemyCount; e++) {
                     if (CheckCollisionCircleRec(center, 15, enemies[e].vehicle.collider)) {
                         manager->projectiles[i].active = false;
                         spawnExplosion(manager, center.x, center.y);
                         PlaySound(audio->damage);
-                        int dmg = 50;
-                        if(enemies[e].vehicle.shield > 0) { 
-                            enemies[e].vehicle.shield = 0; 
-                        } else { 
-                            enemies[e].vehicle.health -= dmg; 
+                        
+                        // ALTERAÇÃO: Checa Escudo do Inimigo
+                        if (enemies[e].vehicle.shieldTimer > 0) {
+                            // Bloqueado
+                        } else {
+                            enemies[e].vehicle.health -= 50; 
                         }
                         break;
                     }
                 }
-            } else {
+            } 
+            // Se atirado por Inimigo -> Acerta Player
+            else {
                 if (CheckCollisionCircleRec(center, 15, player->collider)) {
                     manager->projectiles[i].active = false;
                     spawnExplosion(manager, center.x, center.y);
                     PlaySound(audio->damage);
-                    int dmg = 50;
-                    if(player->shield > 0) { 
-                        player->shield = 0; 
-                    } else { 
-                        player->health -= dmg; 
+                    
+                    // ALTERAÇÃO: Checa Escudo do Player
+                    if (player->shieldTimer > 0) {
+                        // Bloqueado
+                    } else {
+                        player->health -= 50; 
                     }
                 }
             }
         }
     }
 
-    // 4. EFEITOS
+    // 4. EFEITOS (Sem alterações lógicas, apenas o loop padrão)
     for(int i=0; i<MAX_EFFECTS; i++) {
         if(manager->effects[i].active) {
             manager->effects[i].timer -= dt;

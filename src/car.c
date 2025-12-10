@@ -228,6 +228,7 @@ void resetCar(CAR *car, int initialPosX, int initialPosY){
     car->lastLapY = (float)initialPosY;
     car->health = 100;
     car->shield = 0;
+    car->shieldTimer = 0;
     car->hasShield = 0;
     car->Ammo = 0;
     car->hasBomb = 0;

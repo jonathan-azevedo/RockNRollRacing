@@ -21,7 +21,8 @@ typedef struct {
     float x, y;
     bool active;
     float timer;
-    bool droppedByPlayer;
+    int ID;        // NOVO: -1 = Player, 0 ou maior = √çndice do Inimigo
+    float safeTimer;    // NOVO: Tempo que o dono fica imune
 } BOMB;
 
 typedef struct {
@@ -49,9 +50,9 @@ typedef struct {
 void initItems(ITEM_MANAGER *manager, MAP *map);
 void spawnProjectile(ITEM_MANAGER *manager, float x, float y, float angle, bool isPlayer);
 void spawnExplosion(ITEM_MANAGER *manager, float x, float y);
-void spawnBomb(ITEM_MANAGER *manager, float x, float y, bool isPlayer);
+void spawnBomb(ITEM_MANAGER *manager, float x, float y, int ID);
 
-// MUDAN«A: Agora recebe 'ENEMY enemies[]' e 'int enemyCount'
+// MUDANÔøΩA: Agora recebe 'ENEMY enemies[]' e 'int enemyCount'
 void updateItems(ITEM_MANAGER *manager, CAR *player, ENEMY enemies[], int enemyCount, float dt, GameAudio *audio, MAP *map);
 
 void drawItems(ITEM_MANAGER *manager, GAME_TEXTURES *textures);

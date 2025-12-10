@@ -28,6 +28,7 @@ typedef struct{
     // Status
     int health;
     int shield;
+    float shieldTimer;
     int hasShield;
     int Ammo;
     int hasBomb;

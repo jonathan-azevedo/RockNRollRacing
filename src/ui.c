@@ -31,13 +31,20 @@ void drawHUD(CAR *player, ENEMY enemies[], int enemyCount, GAME_TEXTURES *textur
     DrawText(TextFormat("%d", player->health), 75, baseY + 2, 20, BLACK);
     DrawText(TextFormat("%d", player->health), 74, baseY + 1, 20, WHITE);
 
-    if (player->shield > 0) {
+    if (player->shieldTimer > 0) {
         DrawTextureEx(textures->shieldTexture, (Vector2){280, baseY - 15}, 0.0f, iconScale, WHITE);
-        DrawRectangle(325, baseY, 150, barHeight, Fade(SKYBLUE, 0.9f));
+        
+        // Calcula largura baseada em 20 segundos
+        float maxTime = 20.0f;
+        float currentWidth = (player->shieldTimer / maxTime) * 150.0f;
+        
+        DrawRectangle(325, baseY, (int)currentWidth, barHeight, Fade(SKYBLUE, 0.9f));
         DrawRectangleLinesEx((Rectangle){325, baseY, 150, barHeight}, thick, WHITE);
         
-        DrawText("50", 335, baseY + 2, 20, BLACK);
-        DrawText("50", 334, baseY + 1, 20, WHITE);
+        // Mostra o tempo formatado (Ex: 15.4s)
+        const char* timeText = TextFormat("%.1fs", player->shieldTimer);
+        DrawText(timeText, 335, baseY + 2, 20, BLACK);
+        DrawText(timeText, 334, baseY + 1, 20, WHITE);
     }
 
     // WEAPON
