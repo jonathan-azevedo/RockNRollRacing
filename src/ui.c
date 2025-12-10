@@ -47,37 +47,52 @@ void drawHUD(CAR *player, ENEMY enemies[], int enemyCount, GAME_TEXTURES *textur
         DrawText(timeText, 334, baseY + 1, 20, WHITE);
     }
 
-    // WEAPON
-    DrawRectangle(600, baseY - 10, 60, 60, Fade(BLACK, 0.5f));
-    DrawRectangleLinesEx((Rectangle){600, baseY - 10, 60, 60}, thick, WHITE);
+    // Inventory
+    int invnX = 930;
+    DrawRectangle(invnX, baseY - 10, 60, 60, Fade(BLACK, 0.5f));
+    DrawRectangleLinesEx((Rectangle){invnX, baseY - 10, 60, 60}, thick, WHITE);
+    
     if (player->Ammo > 0) {
-        DrawTexturePro(textures->ammoTexture, (Rectangle){0,0, textures->ammoTexture.width, textures->ammoTexture.height}, (Rectangle){630, baseY + 20, 40, 40}, (Vector2){20, 20}, 0.0f, WHITE);
-        DrawText("READY", 615, baseY + 35, 10, GREEN);
+        DrawTexturePro(textures->ammoTexture, (Rectangle){0,0, textures->ammoTexture.width, textures->ammoTexture.height}, (Rectangle){invnX + 30, baseY + 20, 40, 40}, (Vector2){20, 20}, 0.0f, WHITE);
+        DrawText("READY", invnX + 15, baseY + 35, 10, GREEN);
     } else if (player->hasBomb > 0) {
-        DrawTexturePro(textures->bomb, (Rectangle){0,0, textures->bomb.width, textures->bomb.height}, (Rectangle){630, baseY + 20, 40, 40}, (Vector2){20, 20}, 0.0f, WHITE);
-        DrawText("DROP", 618, baseY + 35, 10, RED);
+        DrawTexturePro(textures->bomb, (Rectangle){0,0, textures->bomb.width, textures->bomb.height}, (Rectangle){invnX + 30, baseY + 20, 40, 40}, (Vector2){20, 20}, 0.0f, WHITE);
+        DrawText("DROP", invnX + 18, baseY + 35, 10, RED);
     }
     else if (player->hasShield > 0) {
-        DrawTexturePro(textures->shieldTexture, (Rectangle){0,0, (float)textures->shieldTexture.width, (float)textures->shieldTexture.height}, (Rectangle){630, baseY + 20, 40, 40}, (Vector2){20, 20}, 0.0f, WHITE);
-        DrawText("SHIELD", 612, baseY + 35, 10, SKYBLUE);
+        DrawTexturePro(textures->shieldTexture, (Rectangle){0,0, (float)textures->shieldTexture.width, (float)textures->shieldTexture.height}, (Rectangle){invnX + 30, baseY + 20, 40, 40}, (Vector2){20, 20}, 0.0f, WHITE);
+        DrawText("SHIELD", invnX + 12, baseY + 35, 10, SKYBLUE);
+    }
+    else if (player->hasNitro > 0) {
+        DrawTexturePro(textures->speedTexture, 
+            (Rectangle){0,0, textures->speedTexture.width, textures->speedTexture.height}, 
+            (Rectangle){invnX + 30, baseY + 20, 40, 40}, 
+            (Vector2){20, 20}, 0.0f, WHITE);
+        DrawText("NITRO", invnX + 18, baseY + 35, 10, YELLOW);
     }
     else {
-        DrawText("EMPTY", 610, baseY + 15, 10, GRAY);
+        DrawText("EMPTY", invnX + 10, baseY + 15, 10, GRAY);
     }
-    DrawText("WEAPON", 609, baseY - 25, 10, WHITE);
+    DrawText("Inventory", invnX + 5, baseY - 25, 10, WHITE);
 
     // INFO
-    DrawText(TextFormat("LAPS: %d/%d", player->currentLap, player->maxLaps), 800, baseY, 30, BLACK);
-    DrawText(TextFormat("LAPS: %d/%d", player->currentLap, player->maxLaps), 798, baseY - 2, 30, YELLOW);
-    DrawText(TextFormat("SPD: %.0f", player->currentSpeed), 1000, baseY - 10, 20, BLACK);
-    DrawText(TextFormat("SPD: %.0f", player->currentSpeed), 999, baseY - 11, 20, WHITE);
+    DrawText(TextFormat("LAPS: %d/%d", player->currentLap, player->maxLaps), 1420, baseY, 30, BLACK);
+    DrawText(TextFormat("LAPS: %d/%d", player->currentLap, player->maxLaps), 1418, baseY - 2, 30, YELLOW);
 
-  // --- ENEMIES INFO ---
+// --- ENEMIES INFO (CANTO INFERIOR DIREITO) ---
+    int enemyStartX = screenW - 260; 
+    int lineHeight = 30;
+    
+    // Calcula a posição inicial (topo do bloco) para que o bloco termine alinhado com o 'baseY'
+    int totalBlockHeight = enemyCount * lineHeight;
+    int startY = baseY - totalBlockHeight + 20; // +20 para ajustar com a linha de texto do player
+
     for (int i = 0; i < enemyCount; i++) {
-        int yPos = baseY + 15 + (i * 25);
-        // MOSTRA VIDA E VOLTAS DO INIMIGO
-        DrawText(TextFormat("ENEMY %d: %d%% (Laps: %d)", i+1, enemies[i].vehicle.health, enemies[i].vehicle.currentLap), 1000, yPos, 20, BLACK);
-        DrawText(TextFormat("ENEMY %d: %d%% (Laps: %d)", i+1, enemies[i].vehicle.health, enemies[i].vehicle.currentLap), 999, yPos-1, 20, RED);
-    }
+        int yPos = startY + (i * lineHeight);
+        Color textColor = (enemies[i].vehicle.health > 0) ? RED : GRAY;
+        const char* enemyText = TextFormat("ENEMY %d: %d (Laps: %d)", i+1, enemies[i].vehicle.health, enemies[i].vehicle.currentLap);
 
+        DrawText(enemyText, enemyStartX + 2, yPos + 2, 22, BLACK); // Sombra
+        DrawText(enemyText, enemyStartX, yPos, 22, textColor);     // Texto
+    }
 }

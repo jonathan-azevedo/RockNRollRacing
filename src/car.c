@@ -61,6 +61,20 @@ int checkCarCollision(CAR *car, MAP *map) {
 
 void updateCar(CAR *car, MAP *gameMap) {
     float deltaTime = GetFrameTime();
+
+    // --- LÓGICA DO NITRO (30% boost) ---
+    float baseMaxSpeed = 420.0f;
+    float baseAccel = 250.0f;
+
+    if (car->NitroTimer > 0) {
+        car->NitroTimer -= deltaTime;
+        // Aumenta 30%
+        car->maxSpeed = baseMaxSpeed * 1.3f;      // 420 -> 546
+        car->acceleration = baseAccel * 1.3f;     // 250 -> 325
+    } else {
+        car->maxSpeed = baseMaxSpeed;
+        car->acceleration = baseAccel;
+    }
     
     int goFront = IsKeyDown(KEY_W) || IsKeyDown(KEY_UP);
     int goBack = IsKeyDown(KEY_S) || IsKeyDown(KEY_DOWN);
@@ -133,9 +147,20 @@ void updateCar(CAR *car, MAP *gameMap) {
 void updateEnemyCar(CAR *car, MAP *gameMap) {
     float deltaTime = GetFrameTime();
 
+    float baseMaxSpeed = 400.0f;  
+    float baseAccel = 200.0f;
+
+    if (car->NitroTimer > 0) {
+        car->NitroTimer -= deltaTime;
+        car->maxSpeed = baseMaxSpeed * 1.3f;      
+        car->acceleration = baseAccel * 1.3f;     
+    } else {
+        car->maxSpeed = baseMaxSpeed;
+        car->acceleration = baseAccel;
+    }
     // Limites de velocidade para o inimigo
     if (car->currentSpeed > car->maxSpeed) car->currentSpeed = car->maxSpeed;
-    if (car->currentSpeed < -car->maxSpeed * 0.85f) car->currentSpeed = -car->maxSpeed * 0.85f; 
+    if (car->currentSpeed < -car->maxSpeed * 0.85f) car->currentSpeed = -car->maxSpeed * 0.85f;
     
     // AVISO: O arquivo enemy.c altera o ângulo ANTES de chamar esta função.
     // Isso faz 'oldAngle' já ser o ângulo "perigoso".
@@ -232,10 +257,126 @@ void resetCar(CAR *car, int initialPosX, int initialPosY){
     car->hasShield = 0;
     car->Ammo = 0;
     car->hasBomb = 0;
+    car->hasNitro = 0;
+    car->NitroTimer = 0;
     car->isEnemy = wasEnemy;
     car->startX = (float)initialPosX;
     car->startY = (float)initialPosY;
     
     // Inicializa collider
     car->collider = (Rectangle){ car->x - 30, car->y - 14, 60, 28 };
+}
+
+int checkCollisionPhantom(float x, float y, float angle, MAP *map) {
+    float useWidth = 60.0f;
+    float useHeight = 28.0f;
+    float halfW = useWidth / 2.0f;
+    float halfH = useHeight / 2.0f;
+
+    float rad = angle * DEG2RAD;
+    float s = sinf(rad);
+    float c = cosf(rad);
+
+    float corners[4][2] = {
+        { -halfW, -halfH }, { +halfW, -halfH },
+        { +halfW, +halfH }, { -halfW, +halfH }
+    };
+
+    for (int i = 0; i < 4; i++) {
+        float rotatedX = (corners[i][0] * c) - (corners[i][1] * s);
+        float rotatedY = (corners[i][0] * s) + (corners[i][1] * c);
+        if (isWall(map, x + rotatedX, y + rotatedY)) return 1;
+    }
+    return 0;
+}
+
+// 2. FUNÇÃO PRINCIPAL DE COLISÃO ENTRE CARROS (Adaptada e Corrigida)
+void resolveCarToCarCollision(CAR *c1, CAR *c2, MAP *map) {
+    float dx = c2->x - c1->x;
+    float dy = c2->y - c1->y;
+    float dist = sqrtf(dx*dx + dy*dy);
+    
+    // Raio de colisão ajustado para evitar sobreposições grandes
+    float r1 = 28.0f; 
+    float r2 = 28.0f;
+    float minDist = r1 + r2;
+
+    if (dist < minDist) {
+        if (dist == 0) { dx = 1.0f; dist = 1.0f; }
+
+        float nx = dx / dist;
+        float ny = dy / dist;
+        float overlap = minDist - dist;
+
+        // --- FASE 1: SEPARAÇÃO (Correção de Posição) ---
+        // Empurra suavemente para separar, mas VERIFICA PAREDES antes!
+        float push = (overlap + 2.0f) * 0.5f; // +2.0f cria um pequeno buffer
+        
+        // Tenta empurrar C1 para trás
+        float c1NewX = c1->x - nx * push;
+        float c1NewY = c1->y - ny * push;
+        if (!checkCollisionPhantom(c1NewX, c1NewY, c1->angle, map)) {
+            c1->x = c1NewX;
+            c1->y = c1NewY;
+        }
+
+        // Tenta empurrar C2 para frente
+        float c2NewX = c2->x + nx * push;
+        float c2NewY = c2->y + ny * push;
+        if (!checkCollisionPhantom(c2NewX, c2NewY, c2->angle, map)) {
+            c2->x = c2NewX;
+            c2->y = c2NewY;
+        }
+        
+        // Atualiza colliders após mover
+        c1->collider = (Rectangle){ c1->x - 30, c1->y - 14, 60, 28 };
+        c2->collider = (Rectangle){ c2->x - 30, c2->y - 14, 60, 28 };
+
+        // --- FASE 2: FÍSICA DE IMPULSO (Troca de Energia) ---
+        // Converte velocidade escalar para vetorial
+        float rad1 = c1->angle * DEG2RAD;
+        float vx1 = cosf(rad1) * c1->currentSpeed;
+        float vy1 = sinf(rad1) * c1->currentSpeed;
+
+        float rad2 = c2->angle * DEG2RAD;
+        float vx2 = cosf(rad2) * c2->currentSpeed;
+        float vy2 = sinf(rad2) * c2->currentSpeed;
+
+        float relVelX = vx2 - vx1;
+        float relVelY = vy2 - vy1;
+        float velAlongNormal = relVelX * nx + relVelY * ny;
+
+        // Se já estão se afastando, não aplica colisão (evita tremedeira)
+        if (velAlongNormal > 0) return;
+
+        // Restituição menor (0.2) para evitar o efeito "bola de pinball"
+        float j = -(1.0f + 0.2f) * velAlongNormal;
+        j /= 2.0f; // Massas iguais
+
+        float impulseX = j * nx;
+        float impulseY = j * ny;
+
+        // Aplica impulso nos vetores
+        vx1 -= impulseX;
+        vy1 -= impulseY;
+        vx2 += impulseX;
+        vy2 += impulseY;
+
+        // Reconverte para escalar (Speed) e aplica limites
+        c1->currentSpeed = sqrtf(vx1*vx1 + vy1*vy1);
+        c2->currentSpeed = sqrtf(vx2*vx2 + vy2*vy2);
+        
+        // Mantém o sentido correto (frente/ré)
+        if ((vx1 * cosf(rad1) + vy1 * sinf(rad1)) < 0) c1->currentSpeed *= -1;
+        if ((vx2 * cosf(rad2) + vy2 * sinf(rad2)) < 0) c2->currentSpeed *= -1;
+
+        // CLAMP: Impede velocidades absurdas que fazem atravessar paredes
+        if (c1->currentSpeed > c1->maxSpeed) c1->currentSpeed = c1->maxSpeed;
+        if (c2->currentSpeed > c2->maxSpeed) c2->currentSpeed = c2->maxSpeed;
+
+        // --- FASE 3: DESVIO ANGULAR ---
+        // Faz o carro "escorregar" para o lado se bater de frente
+        c1->angle += (float)GetRandomValue(-2, 2);
+        c2->angle += (float)GetRandomValue(-2, 2);
+    }
 }

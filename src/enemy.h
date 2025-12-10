@@ -1,6 +1,7 @@
 #pragma once
 #include "car.h"
 #include "map.h"
+#define MAX_ENEMIES 3
 
 typedef struct {
     CAR vehicle;

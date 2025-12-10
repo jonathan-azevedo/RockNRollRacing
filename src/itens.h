@@ -8,8 +8,8 @@
 
 #define MAX_ITEMS 5
 #define MAX_BOMBS 10
-#define MAX_PROJECTILES 20
-#define MAX_EFFECTS 20
+#define MAX_PROJECTILES 4
+#define MAX_EFFECTS 5
 
 typedef struct {
     Rectangle rect;

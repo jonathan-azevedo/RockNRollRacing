@@ -9,6 +9,7 @@ typedef struct{
     Texture2D ammoTexture;
     Texture2D lifeTexture;
     Texture2D shieldTexture;
+    Texture2D speedTexture;
 
     Texture2D projectile;
     Texture2D explosion;

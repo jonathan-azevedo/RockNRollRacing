@@ -32,6 +32,8 @@ typedef struct{
     int hasShield;
     int Ammo;
     int hasBomb;
+    int hasNitro;
+    float NitroTimer;
 
     // Flags
     int isEnemy;
@@ -51,3 +53,6 @@ int checkCarCollision(CAR *car, MAP *map);
 int isWall(MAP *map, float x, float y);
 void updateLaps(CAR *car, MAP *map);
 int isTouchingTile(CAR *car, MAP *map, char targetTile);
+void resolveCarCollision(CAR *c1, CAR *c2);
+void resolveCarToCarCollision(CAR *c1, CAR *c2, MAP *map);
+int checkCollisionPhantom(float x, float y, float angle, MAP *map); // Novo helper

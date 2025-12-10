@@ -25,6 +25,7 @@ GAME_TEXTURES loadTextures() {
     textures.ammoTexture   = LoadTexture("Assets/Textures/icon_ammo.png");
     textures.lifeTexture   = LoadTexture("Assets/Textures/icon_life.png");
     textures.shieldTexture = LoadTexture("Assets/Textures/icon_shield.png");
+    textures.speedTexture  = LoadTexture("Assets/Textures/speed.png");
 
     // Fonte
     textures.titlefont = LoadFontEx("Assets/Fonts/RaceSport.ttf", 250, 0, 0);
@@ -49,6 +50,7 @@ void unloadTextures(GAME_TEXTURES *textures) {
     UnloadTexture(textures->ammoTexture);
     UnloadTexture(textures->lifeTexture);
     UnloadTexture(textures->shieldTexture);
+    UnloadTexture(textures->speedTexture);
 
     UnloadFont(textures->titlefont);
 }

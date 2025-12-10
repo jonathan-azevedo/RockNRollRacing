@@ -2,38 +2,28 @@
 #include <math.h>
 #include <stdlib.h>
 
+
 void initEnemy(ENEMY *enemy, MAP *map, Texture2D texture, int offsetIndex) {
     int startX = 200, startY = 200;
-
-    // Vari�vel para contar quantos 'i' j� encontramos no mapa
     int iFoundCount = 0;
     int positionFound = 0;
 
-    // Varre o mapa procurando a posi��o correta
     for (int y = 0; y < MAP_HEIGHT; y++) {
         for (int x = 0; x < MAP_WIDTH; x++) {
             if(map->tiles[y][x] == 'i'){
-
-                // Se o �ndice deste 'i' bater com o �ndice do inimigo (0 ou 1)
                 if (iFoundCount == offsetIndex) {
                     startX = x * TILE_SIZE + TILE_SIZE/2;
                     startY = y * TILE_SIZE + TILE_SIZE/2;
                     positionFound = 1;
-                    break; // Achamos a posi��o deste inimigo espec�fico!
+                    break;
                 }
-
-                // Se n�o for este, incrementa e continua procurando o pr�ximo 'i'
                 iFoundCount++;
             }
         }
         if (positionFound) break;
     }
 
-    // Se n�o achou 'i' suficiente no mapa para todos os inimigos (ex: tem 2 inimigos mas s� 1 'i')
-    // A� sim usamos a l�gica de fila indiana como fallback (plano B)
     if (!positionFound && offsetIndex > 0) {
-        // Pega a posi��o do inimigo anterior e recua
-        // Nota: Isso � raro acontecer se o mapa estiver bem feito
         startX -= (60 * offsetIndex);
     }
 
@@ -46,95 +36,114 @@ void initEnemy(ENEMY *enemy, MAP *map, Texture2D texture, int offsetIndex) {
     enemy->id = offsetIndex;
 
     enemy->turnTimer = 0.0f;
-    enemy->turnDuration = 0.0f;
+    enemy->turnDuration = 0.0f; // Usaremos isso para controlar o tempo da ré
     enemy->turnDirection = 0;
 
-    // Varia��o de velocidade
     if (offsetIndex % 2 != 0) enemy->vehicle.maxSpeed += 15.0f;
 }
 
-// ... (O resto do arquivo continua IGUAL: checkEnemyWall, updateEnemy, drawEnemy) ...
 int checkEnemyWall(MAP *map, float x, float y) {
     return isWall(map, x, y);
 }
 
-void updateEnemy(ENEMY *enemy, MAP *map) {
-    float dt = GetFrameTime();
-    CAR *c = &enemy->vehicle;
-
-    // 1. Ler sensores
-    // Olha 30 graus para cada lado
-    float distLeft  = getWallDistance(map, c->x, c->y, c->angle - 30.0f); 
-    float distRight = getWallDistance(map, c->x, c->y, c->angle + 30.0f);
-    float distFront = getWallDistance(map, c->x, c->y, c->angle);
-
-    // 2. Lógica de Direção (Proporcional)
-    // Se a diferença for grande, vira mais forte.
-    // Raylib: +Ângulo é Horário (Direita), -Ângulo é Anti-horário (Esquerda)
-    
-    // Se Right > Left, queremos virar à Direita (+). 
-    // Se Left > Right, queremos virar à Esquerda (-).
-    float turnForce = (distRight - distLeft) * 2.0f * dt; 
-    
-    // Aplica a curva suavemente para centralizar na pista
-    c->angle += turnForce;
-
-    // 3. Prevenção de Colisão Frontal (Freio de Emergência)
-    float speedTarget = c->maxSpeed;
-    
-    if (distFront < 150.0f) {
-        // Se tem parede logo à frente, freia e curva mais forte para o lado mais livre
-        speedTarget = 50.0f; 
-        float emergencyTurn = (distRight > distLeft ? 150.0f : -150.0f) * dt;
-        c->angle += emergencyTurn;
-    }
-
-    // 4. Controle de Aceleração Simples
-    if (c->currentSpeed < speedTarget) {
-        c->currentSpeed += c->acceleration * dt;
-    } else {
-        c->currentSpeed -= c->friction * dt; // Solta o acelerador
-    }
-
-    // Mecânica de Ré (caso trave)
-    if (c->currentSpeed < 10.0f && distFront < 40.0f) {
-        enemy->turnTimer += dt;
-        if (enemy->turnTimer > 1.0f) {
-             c->currentSpeed = -100.0f; // Ré
-             // Enquanto dá ré, inverte a direção para sair do enrosco
-             c->angle += (distRight > distLeft ? -100.0f : 100.0f) * dt; 
-        }
-    } else {
-        enemy->turnTimer = 0.0f;
-    }
-    
-    // Atualiza física (Lembre-se de corrigir o bug da rotação antes de chamar isso,
-    // mas com essa lógica suave, o bug de colisão deve diminuir drasticamente)
-    updateEnemyCar(c, map);
-    updateLaps(c, map);
-}
-
-void drawEnemy(ENEMY *enemy) {
-    drawCar(&enemy->vehicle);
-}
 float getWallDistance(MAP *map, float startX, float startY, float angleDeg) {
     float rad = angleDeg * DEG2RAD;
     float dirX = cosf(rad);
     float dirY = sinf(rad);
     
     float dist = 0;
-    float step = 10.0f; // Precisão do raio (quanto menor, mais preciso/pesado)
-    float maxDist = 500.0f; // Visão máxima da IA
+    float step = 15.0f; // Otimizado: passos maiores para performance
+    float maxDist = 450.0f; 
 
     while (dist < maxDist) {
         float checkX = startX + dirX * dist;
         float checkY = startY + dirY * dist;
-        
-        // Se bater na parede, retorna a distância atual
-        if (isWall(map, checkX, checkY)) {
-            return dist;
-        }
+        if (isWall(map, checkX, checkY)) return dist;
         dist += step;
     }
-    return maxDist; // Caminho livre
+    return maxDist;
+}
+
+void updateEnemy(ENEMY *enemy, MAP *map) {
+    float dt = GetFrameTime();
+    CAR *c = &enemy->vehicle;
+
+    // --- MÁQUINA DE ESTADOS: RECUPERAÇÃO (RÉ) ---
+    // Se o timer for negativo, estamos executando a manobra de ré
+    if (enemy->turnDuration > 0.0f) {
+        enemy->turnDuration -= dt;
+        
+        c->currentSpeed = -120.0f; // Força ré
+        
+        // Gira para o lado que estava mais livre quando travou
+        float dir = (enemy->turnDirection == 1) ? 1.0f : -1.0f;
+        c->angle += (130.0f * dir) * dt;
+
+        updateEnemyCar(c, map);
+        updateLaps(c, map);
+        return; // Sai da função para ignorar a IA normal
+    }
+
+    // --- IA NORMAL ---
+
+    // 1. Sensores
+    float distLeft  = getWallDistance(map, c->x, c->y, c->angle - 35.0f); // Ângulo um pouco mais aberto (35)
+    float distRight = getWallDistance(map, c->x, c->y, c->angle + 35.0f);
+    float distFront = getWallDistance(map, c->x, c->y, c->angle);
+
+    // 2. Lógica de Direção com VIÉS DE FAIXA (Lane Bias)
+    // Se ID é par (0, 2), prefere direita (+40). Ímpar (1, 3) prefere esquerda (-40).
+    // Isso faz com que, numa reta, um ande de um lado e outro do outro.
+    float laneBias = (enemy->id % 2 == 0) ? 40.0f : -40.0f;
+    
+    // Adicionamos o bias à diferença. O carro "acha" que a parede está mais perto de um lado
+    float turnForce = ((distRight - distLeft) + laneBias) * 2.5f * dt; 
+    c->angle += turnForce;
+
+    // 3. Controle de Velocidade e Freio
+    float speedTarget = c->maxSpeed;
+
+    // Curvas fechadas -> Reduz velocidade
+    if (fabsf(distRight - distLeft) > 150.0f) {
+        speedTarget = c->maxSpeed * 0.70f;
+    }
+
+    // Parede na frente -> Freio de emergência e curva forte
+    if (distFront < 140.0f) {
+        speedTarget = 50.0f; 
+        // Curva de pânico: ignora o viés e vai pro lado mais livre
+        float emergencyTurn = (distRight > distLeft ? 180.0f : -180.0f) * dt;
+        c->angle += emergencyTurn;
+    }
+
+    // Aplica Aceleração
+    if (c->currentSpeed < speedTarget) {
+        c->currentSpeed += c->acceleration * dt;
+    } else {
+        c->currentSpeed -= c->friction * dt;
+    }
+
+    // 4. DETECTOR DE TRAVAMENTO INTELIGENTE
+    // Se a velocidade for muito baixa (< 15) mas o carro não estiver dando ré intencionalmente
+    if (c->currentSpeed > -20.0f && c->currentSpeed < 15.0f) {
+        enemy->turnTimer += dt;
+        
+        // Se ficar preso por 1.0 segundo (seja parede ou outro carro)
+        if (enemy->turnTimer > 1.0f) {
+             enemy->turnDuration = 1.2f; // Configura 1.2s de ré
+             enemy->turnTimer = 0.0f;    // Reseta contador
+             
+             // Decide para onde girar na ré (lado mais livre)
+             enemy->turnDirection = (distRight > distLeft) ? 1 : 0;
+        }
+    } else {
+        enemy->turnTimer = 0.0f; // Reseta se estiver andando bem
+    }
+    
+    updateEnemyCar(c, map);
+    updateLaps(c, map);
+}
+
+void drawEnemy(ENEMY *enemy) {
+    drawCar(&enemy->vehicle);
 }

@@ -68,8 +68,8 @@ void spawnBomb(ITEM_MANAGER *manager, float x, float y, int ID) {
             manager->bombs[i].x = x;
             manager->bombs[i].y = y;
             manager->bombs[i].timer = 20.0f;
-            manager->bombs[i].ID = ID; // Define quem é o dono (-1 Player, 0+ Inimigo)
-            manager->bombs[i].safeTimer = 2.0f;  // 2 segundos de segurança para fugir
+            manager->bombs[i].ID = ID; 
+            manager->bombs[i].safeTimer = 2.0f;
             break;
         }
     }
@@ -78,29 +78,32 @@ void spawnBomb(ITEM_MANAGER *manager, float x, float y, int ID) {
 void applyLoot(CAR *car, ITEM_MANAGER *manager) {
     int r = GetRandomValue(0, 100);
     
-    // Reseta o inventário atual para garantir apenas 1 item por vez
+    // Reseta o inventário para garantir apenas 1 item
     car->Ammo = 0; 
     car->hasBomb = 0;
     car->hasShield = 0;
+    car->hasNitro = 0; // Importante zerar o Nitro antigo
 
-    if (r < 20) {
-        car->hasShield = 1; // Guarda o escudo no bolso
-    } else if (r < 65) {
+    // Probabilidades
+    if (r < 15) {
+        car->hasShield = 1;
+    } else if (r < 50) {
         car->Ammo = 1;
-    } else {
+    } else if (r < 75) {
         car->hasBomb = 1;
+    } else {
+        car->hasNitro = 1;
     }
 }
 
-// ATUALIZADO: Loop para m�ltiplos inimigos
- // ATUALIZADO: Lógica de escudo por tempo (20s) e invulnerabilidade
 void updateItems(ITEM_MANAGER *manager, CAR *player, ENEMY enemies[], int enemyCount, float dt, GameAudio *audio, MAP *map) {
     // 1. CAIXAS DE LOOT
     for(int i=0; i<MAX_ITEMS; i++) {
         if(manager->items[i].active) {
             // Colisão com Player
             if(CheckCollisionRecs(player->collider, manager->items[i].rect)) {
-                if (player->Ammo == 0 && player->hasBomb == 0 && player->hasShield == 0) {
+                // CORREÇÃO AQUI: Adicionado '&& player->hasNitro == 0'
+                if (player->Ammo == 0 && player->hasBomb == 0 && player->hasShield == 0 && player->hasNitro == 0) {
                     applyLoot(player, manager);
                     manager->items[i].active = false;
                     manager->items[i].respawnTimer = 5.0f;
@@ -114,7 +117,7 @@ void updateItems(ITEM_MANAGER *manager, CAR *player, ENEMY enemies[], int enemyC
                         
                         // IA usa itens imediatamente
                         if (enemies[e].vehicle.hasBomb) {
-                            spawnBomb(manager, enemies[e].vehicle.x, enemies[e].vehicle.y, e); // Passa 'e' como ID
+                            spawnBomb(manager, enemies[e].vehicle.x, enemies[e].vehicle.y, e); 
                             enemies[e].vehicle.hasBomb = 0;
                         }
                         if (enemies[e].vehicle.Ammo) {
@@ -122,10 +125,13 @@ void updateItems(ITEM_MANAGER *manager, CAR *player, ENEMY enemies[], int enemyC
                             enemies[e].vehicle.Ammo = 0;
                             PlaySound(audio->shoot);
                         }
-                        // ALTERAÇÃO: IA ativa escudo temporário
                         if (enemies[e].vehicle.hasShield) { 
                             enemies[e].vehicle.hasShield = 0;
-                            enemies[e].vehicle.shieldTimer = 20.0f; // Reseta timer para 20s
+                            enemies[e].vehicle.shieldTimer = 20.0f; 
+                        }
+                        if (enemies[e].vehicle.hasNitro) {
+                            enemies[e].vehicle.hasNitro = 0;
+                            enemies[e].vehicle.NitroTimer = 5.0f;
                         }
 
                         manager->items[i].active = false;
@@ -147,7 +153,7 @@ void updateItems(ITEM_MANAGER *manager, CAR *player, ENEMY enemies[], int enemyC
     for(int i = 0; i < MAX_BOMBS; i++) {
         if(manager->bombs[i].active) {
             manager->bombs[i].timer -= dt;
-            if(manager->bombs[i].safeTimer > 0) manager->bombs[i].safeTimer -= dt; // Reduz o tempo seguro
+            if(manager->bombs[i].safeTimer > 0) manager->bombs[i].safeTimer -= dt; 
             
             if(manager->bombs[i].timer <= 0) manager->bombs[i].active = false;
             if(!manager->bombs[i].active) continue;
@@ -157,7 +163,6 @@ void updateItems(ITEM_MANAGER *manager, CAR *player, ENEMY enemies[], int enemyC
 
             // 2.1 Colisão com PLAYER
             if (CheckCollisionRecs(player->collider, bombR)) {
-                // Se for o dono (Player = -1) E ainda tem tempo seguro, não explode
                 bool isSafe = (manager->bombs[i].ID == -1 && manager->bombs[i].safeTimer > 0);
                 
                 if (!isSafe) {
@@ -165,15 +170,14 @@ void updateItems(ITEM_MANAGER *manager, CAR *player, ENEMY enemies[], int enemyC
                     spawnExplosion(manager, manager->bombs[i].x, manager->bombs[i].y);
                     PlaySound(audio->damage);
                     if (player->shieldTimer <= 0) player->health -= 50;
-                    player->currentSpeed = 0;
+                    player->currentSpeed = 0; // Parada total na bomba
                 }
             }
 
-            // 2.2 Colisão com INIMIGOS (se não explodiu no player)
+            // 2.2 Colisão com INIMIGOS
             if (!exploded) {
                 for (int e = 0; e < enemyCount; e++) {
                     if (CheckCollisionRecs(enemies[e].vehicle.collider, bombR)) {
-                        // Se for o dono (ID == e) E ainda tem tempo seguro, não explode
                         bool isSafe = (manager->bombs[i].ID == e && manager->bombs[i].safeTimer > 0);
                         
                         if (!isSafe) {
@@ -214,11 +218,11 @@ void updateItems(ITEM_MANAGER *manager, CAR *player, ENEMY enemies[], int enemyC
                         spawnExplosion(manager, center.x, center.y);
                         PlaySound(audio->damage);
                         
-                        // ALTERAÇÃO: Checa Escudo do Inimigo
                         if (enemies[e].vehicle.shieldTimer > 0) {
                             // Bloqueado
                         } else {
-                            enemies[e].vehicle.health -= 50; 
+                            enemies[e].vehicle.health -= 50;
+                            enemies[e].vehicle.currentSpeed *= 0.2f; // Redução no tiro
                         }
                         break;
                     }
@@ -231,18 +235,18 @@ void updateItems(ITEM_MANAGER *manager, CAR *player, ENEMY enemies[], int enemyC
                     spawnExplosion(manager, center.x, center.y);
                     PlaySound(audio->damage);
                     
-                    // ALTERAÇÃO: Checa Escudo do Player
                     if (player->shieldTimer > 0) {
                         // Bloqueado
                     } else {
                         player->health -= 50; 
+                        player->currentSpeed *= 0.2f; // Redução no tiro
                     }
                 }
             }
         }
     }
 
-    // 4. EFEITOS (Sem alterações lógicas, apenas o loop padrão)
+    // 4. EFEITOS
     for(int i=0; i<MAX_EFFECTS; i++) {
         if(manager->effects[i].active) {
             manager->effects[i].timer -= dt;

@@ -9,7 +9,7 @@
 #include <stdio.h>
 #include <string.h>
 
-#define MAX_ENEMIES 2
+
 
 typedef enum {MENU, GAME_SETUP, PLAYING, VICTORY, PAUSE, COUNTDOWN} State;
 
@@ -99,7 +99,10 @@ int main(){
                 else if (player.hasShield > 0) {
                     player.hasShield = 0;
                     player.shieldTimer = 20.0f;
-                    //shield sound 
+                }
+                else if (player.hasNitro > 0) {
+                    player.hasNitro = 0;
+                    player.NitroTimer = 5.0f; 
                 }
             }
             updateCar(&player, &gameMap);
@@ -121,6 +124,16 @@ int main(){
             for(int i=0; i<numEnemies; i++){
                 if(enemies[i].vehicle.health > 0){
                     updateEnemy(&enemies[i], &gameMap);
+                    
+                    // COLISÃO 1: Player vs Inimigo [i]
+                    resolveCarToCarCollision(&player, &enemies[i].vehicle, &gameMap);
+                    
+                    // COLISÃO 2: Inimigo [i] vs Outros Inimigos [j]
+                    for(int j=i+1; j<numEnemies; j++){
+                        if(enemies[j].vehicle.health > 0) {
+                            resolveCarToCarCollision(&enemies[i].vehicle, &enemies[j].vehicle, &gameMap);
+                        }
+                    }
                 }
             }
 
