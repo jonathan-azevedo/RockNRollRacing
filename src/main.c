@@ -8,6 +8,7 @@
 #include "enemy.h"
 #include <stdio.h>
 #include <string.h>
+#include "save.h"
 
 
 
@@ -67,6 +68,10 @@ int main(){
 
     State currentState = MENU;
 
+    float feedbackTimer = 0.0f;
+    char feedbackMessage[64] = {0};
+    Color feedbackColor = WHITE;
+
     RenderTexture2D screen = LoadRenderTexture(virtualScreenWidth, virtualScreenHeight);
     RENDER_SETUP screenSetup = {screen, virtualScreenWidth, virtualScreenHeight, {0}, {0}};
     screenSetup = calculateScreenSetup(screenSetup);
@@ -83,7 +88,9 @@ int main(){
         virtualMousePos.y = (realMousePos.y - screenSetup.destRec.y) * (screenSetup.virtualScreenHeight / screenSetup.destRec.height);
         
         UpdateGameMusic(&gameAudio, (int)currentState);
-
+        if (feedbackTimer > 0) {
+            feedbackTimer -= GetFrameTime();
+        }
         // LÓGICA DE JOGO (Fora do desenho)
         if(currentState == PLAYING){
             if(IsKeyPressed(KEY_SPACE)){
@@ -204,10 +211,45 @@ int main(){
                             isGameRunning = false;
                         }
                     }
-                    else if(CheckCollisionPointRec(virtualMousePos,menuButtons[1])){
+                    else if(CheckCollisionPointRec(virtualMousePos, menuButtons[1])){
                         DrawTextEx(gameTextures.titlefont, "Continue", (Vector2){798,670},50,10,LIGHTGRAY);
-                        if(IsMouseButtonPressed(MOUSE_LEFT_BUTTON))
-                            currentState = PLAYING;
+                        if(IsMouseButtonPressed(MOUSE_LEFT_BUTTON)) {
+                            // Tenta carregar o jogo
+                            if(LoadGame(&player, enemies, &itemManager, &selectedMapIndex, &numLaps, &numEnemies, &selectedCarIndex)) {
+                                
+                                // 1. IMPORTANTE: Recarregar o mapa (pois o arquivo só salvou o índice)
+                                gameMap = loadMap(mapFiles[selectedMapIndex]);
+
+                                // 2. IMPORTANTE: Reatribuir as texturas (ponteiros não são salvos)
+                                player.carTexture = gameTextures.carTextures[selectedCarIndex];
+                                
+                                for(int i = 0; i < numEnemies; i++){
+                                    // Lógica original de textura dos inimigos usada no setup
+                                    enemies[i].vehicle.carTexture = gameTextures.carTextures[(selectedCarIndex + 1 + i) % 4];
+                                }
+
+                                // 3. Configurar câmera para o player restaurado
+                                camera.target = (Vector2){ player.x, player.y };
+
+                                // 4. Iniciar Countdown em vez de ir direto para PLAYING
+                                countdownTimer = 3.0f; // 3 segundos para se preparar
+                                PlaySound(gameAudio.countdown);
+                                currentState = COUNTDOWN;
+                                isGameRunning = true;
+                                
+                            } else {
+                                // FALHA NO LOAD
+                                snprintf(feedbackMessage, 64, "NO SAVE FOUND!");
+                                feedbackColor = RED;
+                                feedbackTimer = 2.0f; // Mostra por 2 segundos
+                            }
+                        }
+                    }
+                    if (feedbackTimer > 0 && currentState == MENU) {
+                        // Desenha centralizado acima dos botões ou onde preferir
+                        Vector2 textSize = MeasureTextEx(gameTextures.titlefont, feedbackMessage, 40, 5);
+                        DrawTextEx(gameTextures.titlefont, feedbackMessage, 
+                            (Vector2){(virtualScreenWidth - textSize.x)/2, 530}, 40, 5, feedbackColor);
                     }
                     else if(CheckCollisionPointRec(virtualMousePos,menuButtons[2])){
                         DrawTextEx(gameTextures.titlefont, "Exit", (Vector2){798,740},50,10,LIGHTGRAY);
@@ -347,20 +389,40 @@ int main(){
                     DrawTextEx(gameTextures.titlefont, "Save game", (Vector2){715,600},60,10,RAYWHITE);
                     DrawTextEx(gameTextures.titlefont, "Main menu", (Vector2){715,690},60,10,RAYWHITE);
                     
+                    // Botão Resume
                     if(CheckCollisionPointRec(virtualMousePos,pauseMenuButtons[0])){
                         DrawTextEx(gameTextures.titlefont, "Resume", (Vector2){785,510},60,10,LIGHTGRAY);
                         if(IsMouseButtonPressed(MOUSE_LEFT_BUTTON))
                             currentState = PLAYING;
                     }
+                    // Botão Save Game
                     else if(CheckCollisionPointRec(virtualMousePos,pauseMenuButtons[1])){
                         DrawTextEx(gameTextures.titlefont, "Save game", (Vector2){715,600},60,10,LIGHTGRAY);
-                        if(IsMouseButtonPressed(MOUSE_LEFT_BUTTON))
-                            currentState = MENU;
+                        if(IsMouseButtonPressed(MOUSE_LEFT_BUTTON)) {
+                            // Tenta salvar e pega o resultado
+                            bool saved = SaveGame(&player, enemies, &itemManager, selectedMapIndex, numLaps, numEnemies, selectedCarIndex);
+                            
+                            if (saved) {
+                                snprintf(feedbackMessage, 64, "GAME SAVED!");
+                                feedbackColor = GREEN;
+                            } else {
+                                snprintf(feedbackMessage, 64, "SAVE ERROR!");
+                                feedbackColor = RED;
+                            }
+                            feedbackTimer = 2.0f; // Mensagem fica visível por 2 segundos
+                        }
                     }
+                    // Botão Main Menu
                     else if(CheckCollisionPointRec(virtualMousePos,pauseMenuButtons[2])){
                         DrawTextEx(gameTextures.titlefont, "Main menu", (Vector2){715,690},60,10,LIGHTGRAY);
                         if(IsMouseButtonPressed(MOUSE_LEFT_BUTTON))
                             currentState = MENU;
+                    }
+
+                    // Desenha a mensagem de feedback se o timer estiver ativo
+                    if (feedbackTimer > 0) {
+                        // Ajuste a posição (1220, 610) conforme necessário para ficar ao lado do botão
+                        DrawTextEx(gameTextures.titlefont, feedbackMessage, (Vector2){1220, 610}, 40, 5, feedbackColor);
                     }
                     break;
                 }
