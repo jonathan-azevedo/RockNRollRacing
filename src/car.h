@@ -2,6 +2,7 @@
 #include <raylib.h>
 #include <math.h>
 #include "map.h"
+ 
 
 typedef struct{
     float x;
@@ -11,21 +12,21 @@ typedef struct{
     float height;
     Texture2D carTexture;
 
-    // F�sica
+    // fisica
     float currentSpeed;
     float maxSpeed;
     float acceleration;
     float brakeSpeed;
     float friction;
 
-    // Gameplay
+    // gameplay
     int currentLap;
     int maxLaps;
     int hasReachedMidpoint;
     float lastLapX;
     float lastLapY;
 
-    // Status
+    // status
     int health;
     int shield;
     float shieldTimer;
@@ -35,24 +36,23 @@ typedef struct{
     int hasNitro;
     float NitroTimer;
 
-    // Flags
+    // flags
     int isEnemy;
-    Rectangle collider;
+    Rectangle collider; //hitbox para deteccao de tiros/powerups
 
-    // Respawn
+    // respawn
     float startX;
     float startY;
 
 } CAR;
 
-void drawCar(CAR *car);
-void updateCar(CAR *car, MAP *gameMap);
-void updateEnemyCar(CAR *car, MAP *gameMap);
-void resetCar(CAR *car, int initialPosX, int initialPosY);
-int checkCarCollision(CAR *car, MAP *map);
-int isWall(MAP *map, float x, float y);
-void updateLaps(CAR *car, MAP *map);
-int isTouchingTile(CAR *car, MAP *map, char targetTile);
-void resolveCarCollision(CAR *c1, CAR *c2);
-void resolveCarToCarCollision(CAR *c1, CAR *c2, MAP *map);
-int checkCollisionPhantom(float x, float y, float angle, MAP *map); // Novo helper
+void drawCar(CAR *car); //desenha o sprite do carro rotacionado na tela
+void updateCar(CAR *car, MAP *gameMap); // loop de fisica do jogador
+void updateEnemyCar(CAR *car, MAP *gameMap); // loop de fisica do inimigo
+void resetCar(CAR *car, int initialPosX, int initialPosY); // reseta o carro para a linha de largada e reseta status iniciais
+int checkCarCollision(CAR *car, MAP *map); // detecta colisao do carro com as paredes do mapa
+int isWall(MAP *map, float x, float y); // verifica se uma coordenada é uma parede
+void updateLaps(CAR *car, MAP *map); //gerencia contagem de voltas e checkpoints
+int isTouchingTile(CAR *car, MAP *map, char targetTile); //verifica se o carro esta tocando um tipo especifico de tile
+void resolveCarToCarCollision(CAR *c1, CAR *c2, MAP *map);//resolve a batida entre dois carros (empurrao+ricochete)
+int checkCollisionPhantom(float x, float y, float angle, MAP *map); // Função auxiliar para prever colisão antes de mover

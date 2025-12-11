@@ -3,6 +3,7 @@
 #include <stdio.h>
 
 RENDER_SETUP calculateScreenSetup(RENDER_SETUP renderSetup){
+    //calcula a escala e o posicionamento necessários para adaptar a resolução virtual do jogo ao tamanho real da janela
     float realScreenWidth = (float)GetScreenWidth();
     float realScreenHeight = (float)GetScreenHeight();
     float scaleX = realScreenWidth / renderSetup.virtualScreenWidth;
@@ -18,12 +19,14 @@ RENDER_SETUP calculateScreenSetup(RENDER_SETUP renderSetup){
 }
 
 void drawHUD(CAR *player, ENEMY enemies[], int enemyCount, GAME_TEXTURES *textures, int screenW, int screenH){
+    //desenha o hud 
+
     float iconScale = 0.2f;
     int baseY = screenH - 50;
     int barHeight = 20;
     float thick = 2.5f;
 
-    // --- PLAYER STATS ---
+    // status do player
     DrawTextureEx(textures->lifeTexture, (Vector2){20, baseY - 15}, 0.0f, iconScale, WHITE);
     DrawRectangle(65, baseY, 200, barHeight, Fade(MAROON, 0.8f));
     DrawRectangle(65, baseY, player->health * 2, barHeight, GREEN);
@@ -33,21 +36,18 @@ void drawHUD(CAR *player, ENEMY enemies[], int enemyCount, GAME_TEXTURES *textur
 
     if (player->shieldTimer > 0) {
         DrawTextureEx(textures->shieldTexture, (Vector2){280, baseY - 15}, 0.0f, iconScale, WHITE);
-        
-        // Calcula largura baseada em 20 segundos
         float maxTime = 20.0f;
         float currentWidth = (player->shieldTimer / maxTime) * 150.0f;
         
         DrawRectangle(325, baseY, (int)currentWidth, barHeight, Fade(SKYBLUE, 0.9f));
         DrawRectangleLinesEx((Rectangle){325, baseY, 150, barHeight}, thick, WHITE);
-        
-        // Mostra o tempo formatado (Ex: 15.4s)
+
         const char* timeText = TextFormat("%.1fs", player->shieldTimer);
         DrawText(timeText, 335, baseY + 2, 20, BLACK);
         DrawText(timeText, 334, baseY + 1, 20, WHITE);
     }
 
-    // Inventory
+    // inventario
     int invnX = 930;
     DrawRectangle(invnX, baseY - 10, 60, 60, Fade(BLACK, 0.5f));
     DrawRectangleLinesEx((Rectangle){invnX, baseY - 10, 60, 60}, thick, WHITE);
@@ -75,24 +75,22 @@ void drawHUD(CAR *player, ENEMY enemies[], int enemyCount, GAME_TEXTURES *textur
     }
     DrawText("Inventory", invnX + 5, baseY - 25, 10, WHITE);
 
-    // INFO
+    //info player
     DrawText(TextFormat("LAPS: %d/%d", player->currentLap, player->maxLaps), 1420, baseY, 30, BLACK);
     DrawText(TextFormat("LAPS: %d/%d", player->currentLap, player->maxLaps), 1418, baseY - 2, 30, YELLOW);
 
-// --- ENEMIES INFO (CANTO INFERIOR DIREITO) ---
+// info dos inimigos
     int enemyStartX = screenW - 260; 
     int lineHeight = 30;
-    
-    // Calcula a posição inicial (topo do bloco) para que o bloco termine alinhado com o 'baseY'
+
     int totalBlockHeight = enemyCount * lineHeight;
-    int startY = baseY - totalBlockHeight + 20; // +20 para ajustar com a linha de texto do player
+    int startY = baseY - totalBlockHeight + 20; 
 
     for (int i = 0; i < enemyCount; i++) {
         int yPos = startY + (i * lineHeight);
         Color textColor = (enemies[i].vehicle.health > 0) ? RED : GRAY;
         const char* enemyText = TextFormat("ENEMY %d: %d (Laps: %d)", i+1, enemies[i].vehicle.health, enemies[i].vehicle.currentLap);
-
-        DrawText(enemyText, enemyStartX + 2, yPos + 2, 22, BLACK); // Sombra
-        DrawText(enemyText, enemyStartX, yPos, 22, textColor);     // Texto
+        DrawText(enemyText, enemyStartX + 2, yPos + 2, 22, BLACK); 
+        DrawText(enemyText, enemyStartX, yPos, 22, textColor);     
     }
 }

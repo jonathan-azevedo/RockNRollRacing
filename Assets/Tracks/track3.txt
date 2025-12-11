@@ -1,6 +1,6 @@
 pppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppp
-p                                                                              p
-p                                                                              p
+pppp                                                                        pppp
+ppp                                                                           pp
 p                                                                              p
 p                                                                              p
 p      pppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppp      p
@@ -15,6 +15,6 @@ p      pppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppp      p
 p      ppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppllllllp
 p                                                                              p
 p                                      j                                       p
-p                                      i                                       p
-p                                      i                                       p
+p                                      i                                      pp
+pp                                     i                                     ppp
 pppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppp

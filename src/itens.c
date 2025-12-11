@@ -3,6 +3,7 @@
 #include <math.h>
 
 void setRandomSpawnPosition(LOOT_BOX *item, MAP *map) {
+    //encontra uma posicao valida na matriz para spawnar itens
     int valid = 0;
     while(!valid) {
         int gridX = GetRandomValue(1, MAP_WIDTH - 2);
@@ -22,6 +23,7 @@ void setRandomSpawnPosition(LOOT_BOX *item, MAP *map) {
 }
 
 void initItems(ITEM_MANAGER *manager, MAP *map) {
+    //posiciona as caixas de itens iniciais no mapa
     for(int i=0; i<MAX_BOMBS; i++) manager->bombs[i].active = false;
     for(int i=0; i<MAX_PROJECTILES; i++) manager->projectiles[i].active = false;
     for(int i=0; i<MAX_EFFECTS; i++) manager->effects[i].active = false;
@@ -33,6 +35,7 @@ void initItems(ITEM_MANAGER *manager, MAP *map) {
 }
 
 void spawnExplosion(ITEM_MANAGER *manager, float x, float y) {
+    //inicia uma animação visual de explosão
     for(int i=0; i<MAX_EFFECTS; i++) {
         if(!manager->effects[i].active) {
             manager->effects[i].active = true;
@@ -46,6 +49,7 @@ void spawnExplosion(ITEM_MANAGER *manager, float x, float y) {
 }
 
 void spawnProjectile(ITEM_MANAGER *manager, float x, float y, float angle, bool isPlayer) {
+    //dispara um projetil
     for(int i=0; i<MAX_PROJECTILES; i++) {
         if(!manager->projectiles[i].active) {
             manager->projectiles[i].active = true;
@@ -62,12 +66,12 @@ void spawnProjectile(ITEM_MANAGER *manager, float x, float y, float angle, bool 
 }
 
 void spawnBomb(ITEM_MANAGER *manager, float x, float y, int ID) {
+    //coloca uma bomba no chão e define um tempo de segurança para que nao exploda no dono instantaneamente
     for(int i=0; i<MAX_BOMBS; i++) {
         if(!manager->bombs[i].active) {
             manager->bombs[i].active = true;
             manager->bombs[i].x = x;
             manager->bombs[i].y = y;
-            manager->bombs[i].timer = 20.0f;
             manager->bombs[i].ID = ID; 
             manager->bombs[i].safeTimer = 2.0f;
             break;
@@ -76,13 +80,12 @@ void spawnBomb(ITEM_MANAGER *manager, float x, float y, int ID) {
 }
 
 void applyLoot(CAR *car, ITEM_MANAGER *manager) {
+    //decide qual item vai ganhar
     int r = GetRandomValue(0, 100);
-    
-    // Reseta o inventário para garantir apenas 1 item
     car->Ammo = 0; 
     car->hasBomb = 0;
     car->hasShield = 0;
-    car->hasNitro = 0; // Importante zerar o Nitro antigo
+    car->hasNitro = 0; 
 
     // Probabilidades
     if (r < 15) {
@@ -97,20 +100,20 @@ void applyLoot(CAR *car, ITEM_MANAGER *manager) {
 }
 
 void updateItems(ITEM_MANAGER *manager, CAR *player, ENEMY enemies[], int enemyCount, float dt, GameAudio *audio, MAP *map) {
-    // 1. CAIXAS DE LOOT
+    // caixas de loot
     for(int i=0; i<MAX_ITEMS; i++) {
         if(manager->items[i].active) {
-            // Colisão com Player
+            // colisão com player
             if(CheckCollisionRecs(player->collider, manager->items[i].rect)) {
-                // CORREÇÃO AQUI: Adicionado '&& player->hasNitro == 0'
+                
                 if (player->Ammo == 0 && player->hasBomb == 0 && player->hasShield == 0 && player->hasNitro == 0) {
                     applyLoot(player, manager);
                     manager->items[i].active = false;
-                    manager->items[i].respawnTimer = 5.0f;
+                    manager->items[i].respawnTimer = 1.0f;
                 }
             }
             else {
-                // Colisão com Inimigos
+                // colisão com Inimigos
                 for (int e = 0; e < enemyCount; e++) {
                     if (CheckCollisionRecs(enemies[e].vehicle.collider, manager->items[i].rect)) {
                         applyLoot(&enemies[e].vehicle, manager);
@@ -135,7 +138,7 @@ void updateItems(ITEM_MANAGER *manager, CAR *player, ENEMY enemies[], int enemyC
                         }
 
                         manager->items[i].active = false;
-                        manager->items[i].respawnTimer = 5.0f;
+                        manager->items[i].respawnTimer = 1.0f;
                         break;
                     }
                 }
@@ -149,19 +152,16 @@ void updateItems(ITEM_MANAGER *manager, CAR *player, ENEMY enemies[], int enemyC
         }
     }
 
-    // 2. BOMBAS
+    // bombas
     for(int i = 0; i < MAX_BOMBS; i++) {
         if(manager->bombs[i].active) {
-            manager->bombs[i].timer -= dt;
             if(manager->bombs[i].safeTimer > 0) manager->bombs[i].safeTimer -= dt; 
-            
-            if(manager->bombs[i].timer <= 0) manager->bombs[i].active = false;
             if(!manager->bombs[i].active) continue;
 
             Rectangle bombR = {manager->bombs[i].x, manager->bombs[i].y, 32, 32};
             bool exploded = false;
 
-            // 2.1 Colisão com PLAYER
+            // colisao com player
             if (CheckCollisionRecs(player->collider, bombR)) {
                 bool isSafe = (manager->bombs[i].ID == -1 && manager->bombs[i].safeTimer > 0);
                 
@@ -170,11 +170,11 @@ void updateItems(ITEM_MANAGER *manager, CAR *player, ENEMY enemies[], int enemyC
                     spawnExplosion(manager, manager->bombs[i].x, manager->bombs[i].y);
                     PlaySound(audio->damage);
                     if (player->shieldTimer <= 0) player->health -= 50;
-                    player->currentSpeed = 0; // Parada total na bomba
+                    player->currentSpeed = 0; 
                 }
             }
 
-            // 2.2 Colisão com INIMIGOS
+            // colisao com inimigos
             if (!exploded) {
                 for (int e = 0; e < enemyCount; e++) {
                     if (CheckCollisionRecs(enemies[e].vehicle.collider, bombR)) {
@@ -196,7 +196,7 @@ void updateItems(ITEM_MANAGER *manager, CAR *player, ENEMY enemies[], int enemyC
         }
     }
 
-    // 3. PROJÉTEIS
+    // projeteis
     for(int i=0; i<MAX_PROJECTILES; i++) {
         if(manager->projectiles[i].active) {
             manager->projectiles[i].x += manager->projectiles[i].dx * dt;
@@ -210,7 +210,6 @@ void updateItems(ITEM_MANAGER *manager, CAR *player, ENEMY enemies[], int enemyC
 
             Vector2 center = {manager->projectiles[i].x, manager->projectiles[i].y};
 
-            // Se atirado pelo Player -> Acerta Inimigo
             if (manager->projectiles[i].firedByPlayer) {
                 for (int e = 0; e < enemyCount; e++) {
                     if (CheckCollisionCircleRec(center, 15, enemies[e].vehicle.collider)) {
@@ -219,16 +218,15 @@ void updateItems(ITEM_MANAGER *manager, CAR *player, ENEMY enemies[], int enemyC
                         PlaySound(audio->damage);
                         
                         if (enemies[e].vehicle.shieldTimer > 0) {
-                            // Bloqueado
                         } else {
                             enemies[e].vehicle.health -= 50;
-                            enemies[e].vehicle.currentSpeed *= 0.2f; // Redução no tiro
+                            enemies[e].vehicle.currentSpeed *= 0.2f; 
                         }
                         break;
                     }
                 }
             } 
-            // Se atirado por Inimigo -> Acerta Player
+            
             else {
                 if (CheckCollisionCircleRec(center, 15, player->collider)) {
                     manager->projectiles[i].active = false;
@@ -236,17 +234,17 @@ void updateItems(ITEM_MANAGER *manager, CAR *player, ENEMY enemies[], int enemyC
                     PlaySound(audio->damage);
                     
                     if (player->shieldTimer > 0) {
-                        // Bloqueado
+                        
                     } else {
                         player->health -= 50; 
-                        player->currentSpeed *= 0.2f; // Redução no tiro
+                        player->currentSpeed *= 0.2f; 
                     }
                 }
             }
         }
     }
 
-    // 4. EFEITOS
+    // efeitos
     for(int i=0; i<MAX_EFFECTS; i++) {
         if(manager->effects[i].active) {
             manager->effects[i].timer -= dt;
@@ -256,6 +254,7 @@ void updateItems(ITEM_MANAGER *manager, CAR *player, ENEMY enemies[], int enemyC
 }
 
 void drawItems(ITEM_MANAGER *manager, GAME_TEXTURES *textures) {
+    //renderiza todos os objetos ativos, incluindo a animação da explosão
     for(int i=0; i<MAX_ITEMS; i++) {
         if(manager->items[i].active) {
             if(textures->luckBox.id > 0) DrawTexturePro(textures->luckBox, (Rectangle){0,0, textures->luckBox.width, textures->luckBox.height}, manager->items[i].rect, (Vector2){0,0}, 0.0f, WHITE);

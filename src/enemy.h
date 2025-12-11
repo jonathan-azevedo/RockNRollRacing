@@ -8,12 +8,11 @@ typedef struct {
     float turnTimer;
     float turnDuration;
     int turnDirection;
-    //  um ID para diferenciar os inimigos se precisar
-    int id;
+    int id; //  um ID para diferenciar os inimigos 
 } ENEMY;
 
-//  par�metro 'offsetIndex' para eles n�o nascerem grudados
-void initEnemy(ENEMY *enemy, MAP *map, Texture2D texture, int offsetIndex);
-void updateEnemy(ENEMY *enemy, MAP *map);
-void drawEnemy(ENEMY *enemy);
-float getWallDistance(MAP *map, float startX, float startY, float angleDeg);
+//  
+void initEnemy(ENEMY *enemy, MAP *map, Texture2D texture, int offsetIndex); //inicializa o inimigo 
+void updateEnemy(ENEMY *enemy, MAP *map); //atualiza o inimigo
+void drawEnemy(ENEMY *enemy); //desenha o inimigo
+float getWallDistance(MAP *map, float startX, float startY, float angleDeg); //sensor de distancia

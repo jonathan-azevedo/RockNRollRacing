@@ -11,10 +11,11 @@
 #include "save.h"
 
 
-
+//enum para facilitar saber o estado do jogo
 typedef enum {MENU, GAME_SETUP, PLAYING, VICTORY, PAUSE, COUNTDOWN} State;
 
 int main(){
+    //inicializacao do jogo,variaveis e botoes
     ChangeDirectory(GetApplicationDirectory());
     const int virtualScreenWidth = 1920;
     const int virtualScreenHeight = 1080;
@@ -41,7 +42,7 @@ int main(){
     Rectangle menuButtons[3] = {{798,600,385,60},{798,670,385,60},{798,740,160,60}};
     Rectangle pauseMenuButtons[3] = {{785,510,345,60},{715,600,480,60},{715,690,480,50}};
 
-    // Retângulos da Tela de Setup
+    // retângulos da tela de setup
     Rectangle setupBtnBack = { 50, 50, 150, 50 };
     Rectangle setupBtnStart = { 760, 900, 400, 80 };
     
@@ -54,7 +55,6 @@ int main(){
     Rectangle btnPrevEnemy = { 600, 700, 50, 50 };
     Rectangle btnNextEnemy = { 1270, 700, 50, 50 };
 
-    const char* carNames[] = { "RED RACER", "BLUE RACER", "GALAXY RACER", "THE TANK" };
     int totalCars = 4;
     int selectedCarIndex = 0;
     const char* mapFiles[] = { "track1.txt", "track2.txt","track3.txt"};
@@ -67,7 +67,7 @@ int main(){
     float countdownTimer = 0.0f;
 
     State currentState = MENU;
-
+    //tempo para mostrar msg quando carregar o save
     float feedbackTimer = 0.0f;
     char feedbackMessage[64] = {0};
     Color feedbackColor = WHITE;
@@ -76,12 +76,16 @@ int main(){
     RENDER_SETUP screenSetup = {screen, virtualScreenWidth, virtualScreenHeight, {0}, {0}};
     screenSetup = calculateScreenSetup(screenSetup);
 
+    //camera
     Camera2D camera = {0};
     camera.offset = (Vector2){ virtualScreenWidth / 2.0f, virtualScreenHeight / 2.0f };
     camera.rotation = 0.0f;
     camera.zoom = 1.4f;
 
     while(!WindowShouldClose()){
+        //loop principal do jogo de acordo com o state
+
+        // traduz o clique da Tela Real para a Tela Virtual
         Vector2 realMousePos = GetMousePosition();
         Vector2 virtualMousePos;
         virtualMousePos.x = (realMousePos.x - screenSetup.destRec.x) * (screenSetup.virtualScreenWidth / screenSetup.destRec.width);
@@ -91,8 +95,9 @@ int main(){
         if (feedbackTimer > 0) {
             feedbackTimer -= GetFrameTime();
         }
-        // LÓGICA DE JOGO (Fora do desenho)
+        
         if(currentState == PLAYING){
+            //input para usar itens
             if(IsKeyPressed(KEY_SPACE)){
                 if(player.Ammo > 0){
                     PlaySound(gameAudio.shoot);
@@ -120,22 +125,21 @@ int main(){
                 if (player.shieldTimer < 0) player.shieldTimer = 0.0f;
             }
 
-            // Atualizar Temporizador do Escudo dos Inimigos
             for(int i=0; i<numEnemies; i++){
                 if(enemies[i].vehicle.shieldTimer > 0) {
                     enemies[i].vehicle.shieldTimer -= GetFrameTime();
                     if(enemies[i].vehicle.shieldTimer < 0) enemies[i].vehicle.shieldTimer = 0.0f;
                 }
             }
-
+            //atualizacao dos inimigos
             for(int i=0; i<numEnemies; i++){
                 if(enemies[i].vehicle.health > 0){
                     updateEnemy(&enemies[i], &gameMap);
                     
-                    // COLISÃO 1: Player vs Inimigo [i]
+
                     resolveCarToCarCollision(&player, &enemies[i].vehicle, &gameMap);
                     
-                    // COLISÃO 2: Inimigo [i] vs Outros Inimigos [j]
+
                     for(int j=i+1; j<numEnemies; j++){
                         if(enemies[j].vehicle.health > 0) {
                             resolveCarToCarCollision(&enemies[i].vehicle, &enemies[j].vehicle, &gameMap);
@@ -146,7 +150,7 @@ int main(){
 
             updateItems(&itemManager, &player, enemies, numEnemies, GetFrameTime(), &gameAudio, &gameMap);
 
-            // Vitória
+            // vitória
             if(player.currentLap >= numLaps){
                 playerWon = true;
                 currentState = VICTORY;
@@ -155,24 +159,19 @@ int main(){
             if(player.health <= 0){
                 PlaySound(gameAudio.damage);
                 playerWon = false;
-                currentState = VICTORY; // Usa a tela de fim de jogo existente
+                currentState = VICTORY; 
                 isGameRunning = false;
             }
-
+            // verificação vitoria ou morte dos inimigos
             int activeEnemies = 0;
             for(int i=0; i<numEnemies; i++){
-                // Se morreu
                 if (enemies[i].vehicle.health <= 0) {
-                    // Se ainda está "no mapa", processa a morte uma única vez
                     if (enemies[i].vehicle.x > -5000) { 
                         PlaySound(gameAudio.damage);
-                        // Move para o "limbo" para evitar colisão e som repetido
                         enemies[i].vehicle.x = -10000; 
                         enemies[i].vehicle.y = -10000;
                     }
-                    // Não conta como ativo
                 }else{
-                    // Se está vivo, checa se ganhou a corrida
                     if(enemies[i].vehicle.currentLap >= numLaps){
                         playerWon = false;
                         winningEnemyIndex = i + 1;
@@ -183,7 +182,7 @@ int main(){
                     activeEnemies++;
                 }
             }
-
+            // vitória por w.o,todos inimigos mortos
             if(isGameRunning && activeEnemies == 0){
                 playerWon = true;
                 currentState = VICTORY;
@@ -193,7 +192,6 @@ int main(){
             camera.target = (Vector2){ player.x, player.y };
         }
 
-        // DESENHO (DRAWING)
         BeginTextureMode(screen);
             switch (currentState){
                 case MENU:{
@@ -214,39 +212,29 @@ int main(){
                     else if(CheckCollisionPointRec(virtualMousePos, menuButtons[1])){
                         DrawTextEx(gameTextures.titlefont, "Continue", (Vector2){798,670},50,10,LIGHTGRAY);
                         if(IsMouseButtonPressed(MOUSE_LEFT_BUTTON)) {
-                            // Tenta carregar o jogo
                             if(LoadGame(&player, enemies, &itemManager, &selectedMapIndex, &numLaps, &numEnemies, &selectedCarIndex)) {
-                                
-                                // 1. IMPORTANTE: Recarregar o mapa (pois o arquivo só salvou o índice)
                                 gameMap = loadMap(mapFiles[selectedMapIndex]);
-
-                                // 2. IMPORTANTE: Reatribuir as texturas (ponteiros não são salvos)
                                 player.carTexture = gameTextures.carTextures[selectedCarIndex];
                                 
                                 for(int i = 0; i < numEnemies; i++){
-                                    // Lógica original de textura dos inimigos usada no setup
                                     enemies[i].vehicle.carTexture = gameTextures.carTextures[(selectedCarIndex + 1 + i) % 4];
                                 }
-
-                                // 3. Configurar câmera para o player restaurado
                                 camera.target = (Vector2){ player.x, player.y };
 
-                                // 4. Iniciar Countdown em vez de ir direto para PLAYING
-                                countdownTimer = 3.0f; // 3 segundos para se preparar
+                                // reinicia via countdown 
+                                countdownTimer = 3.0f; 
                                 PlaySound(gameAudio.countdown);
                                 currentState = COUNTDOWN;
                                 isGameRunning = true;
                                 
                             } else {
-                                // FALHA NO LOAD
                                 snprintf(feedbackMessage, 64, "NO SAVE FOUND!");
                                 feedbackColor = RED;
-                                feedbackTimer = 2.0f; // Mostra por 2 segundos
+                                feedbackTimer = 2.0f;
                             }
                         }
                     }
                     if (feedbackTimer > 0 && currentState == MENU) {
-                        // Desenha centralizado acima dos botões ou onde preferir
                         Vector2 textSize = MeasureTextEx(gameTextures.titlefont, feedbackMessage, 40, 5);
                         DrawTextEx(gameTextures.titlefont, feedbackMessage, 
                             (Vector2){(virtualScreenWidth - textSize.x)/2, 530}, 40, 5, feedbackColor);
@@ -259,13 +247,14 @@ int main(){
                     break;
                 }
                 case GAME_SETUP:{
+                    //selecao das condicoes
                     ClearBackground(BLACK);
                     DrawTextEx(gameTextures.titlefont, "Choose your setup", (Vector2){460, 100}, 80, 5, WHITE);
                     
                     Texture2D currentCarTex = gameTextures.carTextures[selectedCarIndex];
                     DrawTexturePro(currentCarTex,(Rectangle){0, 0, currentCarTex.width, currentCarTex.height},(Rectangle){860, 250, 200, 100},(Vector2){0,0}, 0.0f, WHITE);                                      
                     
-                    // CAR SELECT
+                    // selecao de carro
                     DrawText("<", btnPrevCar.x, btnPrevCar.y, 50, CheckCollisionPointRec(virtualMousePos, btnPrevCar) ? YELLOW : WHITE);
                     if(CheckCollisionPointRec(virtualMousePos, btnPrevCar) && IsMouseButtonPressed(MOUSE_LEFT_BUTTON)) {
                         selectedCarIndex--; if(selectedCarIndex < 0) selectedCarIndex = totalCars - 1;
@@ -275,7 +264,7 @@ int main(){
                         selectedCarIndex = (selectedCarIndex + 1) % totalCars;
                     }
 
-                    // MAP SELECT
+                    // selecao de mapa
                     DrawTextEx(gameTextures.titlefont, TextFormat("Map: %s", mapNames[selectedMapIndex]), (Vector2){790, 500}, 40, 2, WHITE);
                     DrawText("<", btnPrevMap.x, btnPrevMap.y, 50, CheckCollisionPointRec(virtualMousePos, btnPrevMap) ? YELLOW : WHITE);
                     if(CheckCollisionPointRec(virtualMousePos, btnPrevMap) && IsMouseButtonPressed(MOUSE_LEFT_BUTTON)) {
@@ -286,7 +275,7 @@ int main(){
                         selectedMapIndex = (selectedMapIndex + 1) % totalMaps;
                     }
 
-                    // LAPS
+                    // selecao de quantidade de voltas
                     DrawTextEx(gameTextures.titlefont, TextFormat("Laps: %02d", numLaps), (Vector2){850, 600}, 40, 2, WHITE);
                     DrawText("<", btnPrevLap.x, btnPrevLap.y, 50, CheckCollisionPointRec(virtualMousePos, btnPrevLap) ? YELLOW : WHITE);
                     if(CheckCollisionPointRec(virtualMousePos, btnPrevLap) && IsMouseButtonPressed(MOUSE_LEFT_BUTTON)) {
@@ -297,7 +286,7 @@ int main(){
                         if(numLaps < 50) numLaps++;
                     }
 
-                    // ENEMIES
+                    // selecao de quantidade de inimigos
                     DrawTextEx(gameTextures.titlefont, TextFormat("Enemies: %d", numEnemies), (Vector2){830, 700}, 40, 2, WHITE);
                     DrawText("<", btnPrevEnemy.x, btnPrevEnemy.y, 50, CheckCollisionPointRec(virtualMousePos, btnPrevEnemy) ? YELLOW : WHITE);
                     if(CheckCollisionPointRec(virtualMousePos, btnPrevEnemy) && IsMouseButtonPressed(MOUSE_LEFT_BUTTON)) {
@@ -305,10 +294,10 @@ int main(){
                     }
                     DrawText(">", btnNextEnemy.x, btnNextEnemy.y, 50, CheckCollisionPointRec(virtualMousePos, btnNextEnemy) ? YELLOW : WHITE);
                     if(CheckCollisionPointRec(virtualMousePos, btnNextEnemy) && IsMouseButtonPressed(MOUSE_LEFT_BUTTON)) {
-                        if(numEnemies < 5) numEnemies++;
+                        if(numEnemies < 2) numEnemies++;
                     }
 
-                    // START BUTTON
+                    // botao de start
                     Color startColor = CheckCollisionPointRec(virtualMousePos, setupBtnStart) ? YELLOW : GREEN;
                     DrawRectangleLinesEx(setupBtnStart, 5, startColor);
                     DrawTextEx(gameTextures.titlefont, "START RACE", (Vector2){setupBtnStart.x+ 10, setupBtnStart.y + 15}, 48, 5, startColor);
@@ -409,19 +398,17 @@ int main(){
                                 snprintf(feedbackMessage, 64, "SAVE ERROR!");
                                 feedbackColor = RED;
                             }
-                            feedbackTimer = 2.0f; // Mensagem fica visível por 2 segundos
+                            feedbackTimer = 2.0f;
                         }
                     }
-                    // Botão Main Menu
+                    // botão main menu
                     else if(CheckCollisionPointRec(virtualMousePos,pauseMenuButtons[2])){
                         DrawTextEx(gameTextures.titlefont, "Main menu", (Vector2){715,690},60,10,LIGHTGRAY);
                         if(IsMouseButtonPressed(MOUSE_LEFT_BUTTON))
                             currentState = MENU;
                     }
 
-                    // Desenha a mensagem de feedback se o timer estiver ativo
                     if (feedbackTimer > 0) {
-                        // Ajuste a posição (1220, 610) conforme necessário para ficar ao lado do botão
                         DrawTextEx(gameTextures.titlefont, feedbackMessage, (Vector2){1220, 610}, 40, 5, feedbackColor);
                     }
                     break;
@@ -442,14 +429,14 @@ int main(){
                     if(IsKeyPressed(KEY_ENTER)) currentState = MENU;
                     break;
                 }
-            } // Fim do switch
-        EndTextureMode(); // Fim do desenho na textura
+            } 
+        EndTextureMode(); 
 
         BeginDrawing();
             ClearBackground(BLACK);
             DrawTexturePro(screen.texture, screenSetup.sourceRec, screenSetup.destRec, (Vector2){0, 0}, 0.0f, WHITE);
         EndDrawing();
-    } // Fim do loop while
+    } 
 
     endgame:
     UnloadRenderTexture(screen);

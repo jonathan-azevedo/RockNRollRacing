@@ -1,27 +1,21 @@
 #include "audio.h"
 #include <stdio.h>
 
-// Definição dos estados copiados do main para referência interna
-// MENU=0, GAME_SETUP=1, PLAYING=2, VICTORY=3, PAUSE=4
-
+// Enumeração local de estados para controle 
 typedef enum {MENU, GAME_SETUP, PLAYING, VICTORY, PAUSE, COUNTDOWN} State;
 
-GameAudio LoadGameAudio() {
-    GameAudio audio = {0};
 
-    // --- CARREGANDO MÚSICAS ---
-    // Ajuste os volumes aqui (0.0f a 1.0f)
-    
+GameAudio LoadGameAudio() {
+    //carrega os arquivos de audio
+    GameAudio audio = {0};
     audio.menuMusic = LoadMusicStream("Assets/Music/Skillet-Monster.mp3");
     SetMusicVolume(audio.menuMusic, 0.5f);
-    // Faz a música do menu loopar corretamente se tiver metadados de loop
     audio.menuMusic.looping = true; 
-
     audio.raceMusic = LoadMusicStream("Assets/Music/heavy_battle.mp3");
     SetMusicVolume(audio.raceMusic, 0.4f);
     audio.raceMusic.looping = true;
 
-    // --- CARREGANDO EFEITOS SONOROS ---
+    // carrega efeitos sonoros
     audio.countdown = LoadSound("Assets/Sounds/countdown.ogg");
     audio.damage = LoadSound("Assets/Sounds/damage.mp3");
     audio.shoot = LoadSound("Assets/Sounds/shoot.mp3");
@@ -30,6 +24,7 @@ GameAudio LoadGameAudio() {
 }
 
 void UnloadGameAudio(GameAudio *audio) {
+    //funcao de limpeza de memoria
     UnloadMusicStream(audio->menuMusic);
     UnloadMusicStream(audio->raceMusic);
     
@@ -39,42 +34,32 @@ void UnloadGameAudio(GameAudio *audio) {
 }
 
 void UpdateGameMusic(GameAudio *audio, int gameState) {
-    // Variável estática para detectar mudança de estado
     static State lastState = -1; 
-
+    //mudancas na musica de acordo com o estado do jogo
     if (gameState != lastState) {
-        
-        // --- TRANSIÇÃO: ENTRANDO EM PAUSE ---
         if (gameState == PAUSE) { 
             PauseMusicStream(audio->raceMusic);
         }
-        
-        // --- TRANSIÇÃO: ENTRANDO NO JOGO OU COUNTDOWN ---
         else if (gameState == PLAYING || gameState == COUNTDOWN) {
             StopMusicStream(audio->menuMusic); 
             
             if (lastState == PAUSE) { 
                 ResumeMusicStream(audio->raceMusic);
             } else { 
-                // Se veio do menu, reinicia a música
+                
                 StopMusicStream(audio->raceMusic);
                 PlayMusicStream(audio->raceMusic);
             }
         }
-        
-        // --- TRANSIÇÃO: INDO PARA MENUS ---
-        else if (gameState == MENU || gameState == GAME_SETUP || gameState == VICTORY) {
+        else if(gameState == MENU || gameState == GAME_SETUP || gameState == VICTORY){
             StopMusicStream(audio->raceMusic);
             
-            if (!IsMusicStreamPlaying(audio->menuMusic)) {
+            if(!IsMusicStreamPlaying(audio->menuMusic)){
                 PlayMusicStream(audio->menuMusic);
             }
         }
-        
         lastState = gameState;
     }
-
-    // --- LOOP DE ATUALIZAÇÃO ---
     // Mantém a música rodando
     if (gameState == MENU || gameState == GAME_SETUP || gameState == VICTORY) {
         UpdateMusicStream(audio->menuMusic);
