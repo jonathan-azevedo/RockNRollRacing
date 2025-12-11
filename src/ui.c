@@ -88,8 +88,9 @@ void drawHUD(CAR *player, ENEMY enemies[], int enemyCount, GAME_TEXTURES *textur
 
     for (int i = 0; i < enemyCount; i++) {
         int yPos = startY + (i * lineHeight);
+        int displayHealth = (enemies[i].vehicle.health < 0) ? 0 : enemies[i].vehicle.health;
         Color textColor = (enemies[i].vehicle.health > 0) ? RED : GRAY;
-        const char* enemyText = TextFormat("ENEMY %d: %d (Laps: %d)", i+1, enemies[i].vehicle.health, enemies[i].vehicle.currentLap);
+        const char* enemyText = TextFormat("ENEMY %d: %d (Laps: %d)", i+1, displayHealth, enemies[i].vehicle.currentLap);
         DrawText(enemyText, enemyStartX + 2, yPos + 2, 22, BLACK); 
         DrawText(enemyText, enemyStartX, yPos, 22, textColor);     
     }

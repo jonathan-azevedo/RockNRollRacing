@@ -109,7 +109,7 @@ void updateItems(ITEM_MANAGER *manager, CAR *player, ENEMY enemies[], int enemyC
                 if (player->Ammo == 0 && player->hasBomb == 0 && player->hasShield == 0 && player->hasNitro == 0) {
                     applyLoot(player, manager);
                     manager->items[i].active = false;
-                    manager->items[i].respawnTimer = 1.0f;
+                    manager->items[i].respawnTimer = 4.0f;
                 }
             }
             else {
@@ -138,7 +138,7 @@ void updateItems(ITEM_MANAGER *manager, CAR *player, ENEMY enemies[], int enemyC
                         }
 
                         manager->items[i].active = false;
-                        manager->items[i].respawnTimer = 1.0f;
+                        manager->items[i].respawnTimer = 4.0f;
                         break;
                     }
                 }
